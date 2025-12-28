@@ -20,6 +20,7 @@ go.work
 
 # IDE
 .vscode/
+.idea/
 *.swp
 *.swo
 *~
@@ -34,4 +35,6 @@ config.yaml
 
 # Logs
 *.log
-.idea
+
+# Vendor directory (if using vendoring)
+vendor/
