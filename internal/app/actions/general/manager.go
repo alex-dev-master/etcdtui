@@ -1,41 +1,40 @@
 package general
 
 import (
-	"github.com/alexandr/etcdtui/internal/ui/deatailspanel"
-	"github.com/alexandr/etcdtui/internal/ui/keyspanel"
-	"github.com/alexandr/etcdtui/internal/ui/statusbarpanel"
+	"github.com/alexandr/etcdtui/internal/ui/panels/details"
+	"github.com/alexandr/etcdtui/internal/ui/panels/keys"
+	"github.com/alexandr/etcdtui/internal/ui/panels/statusbar"
 	"github.com/rivo/tview"
 )
 
 type General struct {
-	keysPanelTree  *keyspanel.TreeNode
-	detailsPanel   *deatailspanel.TextView
-	statusBarPanel *statusbarpanel.TextView
+	keysPanel      *keys.Panel
+	detailsPanel   *details.Panel
+	statusBarPanel *statusbar.Panel
 }
 
 func NewGeneral() *General {
 	return &General{
-		keyspanel.NewTreeNode(),
-		deatailspanel.NewTextView(),
-		statusbarpanel.NewTextView(),
+		keysPanel:      keys.New(),
+		detailsPanel:   details.New(),
+		statusBarPanel: statusbar.New(),
 	}
 }
 
 func (g *General) Exec() {
-	g.keysPanelTree.Draw()
+	g.keysPanel.Draw()
 	g.detailsPanel.Draw()
 	g.statusBarPanel.Draw()
 
-	// Обработка выбора узла в дереве
-	g.keysPanelTree.GetTree().SetSelectedFunc(func(node *tview.TreeNode) {
+	g.keysPanel.GetTree().SetSelectedFunc(func(node *tview.TreeNode) {
 		reference := node.GetReference()
 		if reference == nil {
-			// Раскрываем/скрываем узел
+			// Toggle node expansion
 			node.SetExpanded(!node.IsExpanded())
 			return
 		}
 
-		// Показываем детали ключа
+		// Show key details
 		key := reference.(string)
 		var value string
 		switch key {
@@ -66,22 +65,22 @@ func (g *General) Exec() {
 		detailsText += "[yellow]TTL:[white] ∞\n\n"
 		detailsText += "[green][e][white] Edit  [green][d][white] Delete  [green][w][white] Watch  [green][c][white] Copy"
 
-		g.detailsPanel.GetTextView().SetText(detailsText)
+		g.detailsPanel.SetText(detailsText)
 	})
 }
 
-func (g *General) GetKeysPanelTree() (keysPanelTree *keyspanel.TreeNode) {
-	return g.keysPanelTree
+func (g *General) GetKeysPanel() *keys.Panel {
+	return g.keysPanel
 }
 
-func (g *General) GetDetailsPanel() (detailsPanel *deatailspanel.TextView) {
+func (g *General) GetDetailsPanel() *details.Panel {
 	return g.detailsPanel
 }
 
-func (g *General) GetStatusBarPanel() (statusBarPanel *statusbarpanel.TextView) {
+func (g *General) GetStatusBarPanel() *statusbar.Panel {
 	return g.statusBarPanel
 }
 
 func (g *General) SetStatusBarText(text string) {
-	g.statusBarPanel.GetTextView().SetText(text)
+	g.statusBarPanel.SetText(text)
 }

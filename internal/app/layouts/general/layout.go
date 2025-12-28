@@ -20,16 +20,16 @@ func NewGeneral(app *tview.Application) *General {
 
 func (g *General) Render() {
 	g.generalActions.Exec()
-	// Layout: дерево слева, детали справа
+	// Layout: tree on left, details on right
 	mainFlex := tview.NewFlex().
-		AddItem(g.generalActions.GetKeysPanelTree().GetTree(), 0, 1, true).
-		AddItem(g.generalActions.GetDetailsPanel().GetTextView(), 0, 2, false)
+		AddItem(g.generalActions.GetKeysPanel().GetTree(), 0, 1, true).
+		AddItem(g.generalActions.GetDetailsPanel().GetView(), 0, 2, false)
 
-	// Общий layout с статус баром внизу
+	// Main layout with status bar at bottom
 	g.rootFlex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(mainFlex, 0, 1, true).
-		AddItem(g.generalActions.GetStatusBarPanel().GetTextView(), 1, 0, false)
+		AddItem(g.generalActions.GetStatusBarPanel().GetView(), 1, 0, false)
 
 	g.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		return g.GetInputCapture(event)

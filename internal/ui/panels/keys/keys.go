@@ -1,4 +1,4 @@
-package keyspanel
+package keys
 
 import (
 	"sync"
@@ -7,29 +7,36 @@ import (
 	"github.com/rivo/tview"
 )
 
-type TreeNode struct {
-	tree *tview.TreeView
-	once sync.Once
-}
+// Panel represents the keys tree panel (left side)
+type (
+	Panel struct {
+		tree *tview.TreeView
+		once sync.Once
+	}
 
-func NewTreeNode() *TreeNode {
-	return &TreeNode{
+	Items struct {
+	}
+)
+
+// New creates a new keys panel
+func New() *Panel {
+	return &Panel{
 		tree: tview.NewTreeView(),
 	}
 }
 
-// Draw Создаём дерево ключей (левая панель)
-func (t *TreeNode) Draw() {
-	t.once.Do(t.draw)
+// Draw initializes the keys tree with demo data
+func (p *Panel) Draw() {
+	p.once.Do(p.initialize)
 }
 
-func (t *TreeNode) draw() {
+func (p *Panel) initialize() {
 	root := tview.NewTreeNode("etcd").
 		SetColor(tcell.ColorYellow).
-		SetExpanded(true)
-	t.tree.SetRoot(root).SetCurrentNode(root)
+		SetExpanded(false)
+	p.tree.SetRoot(root).SetCurrentNode(root)
 
-	// Добавляем примеры данных для демонстрации
+	// Add demo data
 	services := tview.NewTreeNode("services").
 		SetExpanded(true)
 	root.AddChild(services)
@@ -53,7 +60,7 @@ func (t *TreeNode) draw() {
 		SetReference("/services/auth/jwt-secret")
 	auth.AddChild(jwtSecret)
 
-	// Добавляем секцию config
+	// Add config section
 	config := tview.NewTreeNode("config").
 		SetExpanded(true)
 	root.AddChild(config)
@@ -66,7 +73,7 @@ func (t *TreeNode) draw() {
 		SetReference("/config/redis-url")
 	config.AddChild(redisURL)
 
-	// Добавляем секцию locks
+	// Add locks section
 	locks := tview.NewTreeNode("locks")
 	root.AddChild(locks)
 
@@ -75,9 +82,10 @@ func (t *TreeNode) draw() {
 		SetColor(tcell.ColorRed)
 	locks.AddChild(paymentLock)
 
-	t.tree.SetBorder(true).SetTitle(" Keys ")
+	p.tree.SetBorder(true).SetTitle(" Keys ")
 }
 
-func (t *TreeNode) GetTree() *tview.TreeView {
-	return t.tree
+// GetTree returns the underlying TreeView
+func (p *Panel) GetTree() *tview.TreeView {
+	return p.tree
 }
