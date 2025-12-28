@@ -4,6 +4,7 @@ import (
 	"log"
 
 	generalActions "github.com/alexandr/etcdtui/internal/app/actions/general"
+	client "github.com/alexandr/etcdtui/pkg/etcd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -67,7 +68,15 @@ func (g *General) GetInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		g.generalActions.SetStatusBarText("[yellow]New key:[white] [not implemented yet]")
 		return nil
 	case 'r':
-		g.generalActions.SetStatusBarText("[green]Refreshed[white] at " + "now")
+		if err := g.generalActions.RefreshKeys(); err != nil {
+			g.generalActions.SetStatusBarText("[red]Failed to refresh:[white] " + err.Error())
+		}
+		return nil
+	case 'd':
+		g.handleDelete()
+		return nil
+	case 'e':
+		g.handleEdit()
 		return nil
 	}
 
@@ -100,4 +109,101 @@ Navigation:
 		})
 
 	app.SetRoot(modal, true)
+}
+
+// handleDelete shows confirmation modal and deletes the selected key
+func (g *General) handleDelete() {
+	tree := g.generalActions.GetKeysPanel().GetTree()
+	node := tree.GetCurrentNode()
+	if node == nil {
+		return
+	}
+
+	reference := node.GetReference()
+	if reference == nil {
+		g.generalActions.SetStatusBarText("[yellow]Cannot delete directory node")
+		return
+	}
+
+	kv, ok := reference.(*client.KeyValue)
+	if !ok {
+		return
+	}
+
+	// Show confirmation modal
+	modal := tview.NewModal().
+		SetText("Delete key: " + kv.Key + "?").
+		AddButtons([]string{"Delete", "Cancel"}).
+		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			g.app.SetRoot(g.rootFlex, true)
+			if buttonLabel == "Delete" {
+				if err := g.generalActions.DeleteKey(kv.Key); err != nil {
+					g.generalActions.SetStatusBarText("[red]Failed to delete:[white] " + err.Error())
+				} else {
+					g.generalActions.SetStatusBarText("[green]Deleted:[white] " + kv.Key)
+				}
+			}
+		})
+
+	g.app.SetRoot(modal, true)
+}
+
+// handleEdit shows edit modal for the selected key
+func (g *General) handleEdit() {
+	tree := g.generalActions.GetKeysPanel().GetTree()
+	node := tree.GetCurrentNode()
+	if node == nil {
+		return
+	}
+
+	reference := node.GetReference()
+	if reference == nil {
+		g.generalActions.SetStatusBarText("[yellow]Cannot edit directory node")
+		return
+	}
+
+	kv, ok := reference.(*client.KeyValue)
+	if !ok {
+		return
+	}
+
+	// Create form for editing
+	form := tview.NewForm()
+	form.AddInputField("Key", kv.Key, 50, nil, nil)
+	form.AddTextArea("Value", kv.Value, 50, 5, 0, nil)
+
+	form.AddButton("Save", func() {
+		keyField := form.GetFormItemByLabel("Key").(*tview.InputField)
+		valueField := form.GetFormItemByLabel("Value").(*tview.TextArea)
+
+		newKey := keyField.GetText()
+		newValue := valueField.GetText()
+
+		// If key changed, delete old and create new
+		if newKey != kv.Key {
+			if err := g.generalActions.DeleteKey(kv.Key); err != nil {
+				g.generalActions.SetStatusBarText("[red]Failed to delete old key:[white] " + err.Error())
+				g.app.SetRoot(g.rootFlex, true)
+				return
+			}
+		}
+
+		if err := g.generalActions.PutKey(newKey, newValue); err != nil {
+			g.generalActions.SetStatusBarText("[red]Failed to save:[white] " + err.Error())
+		} else {
+			g.generalActions.SetStatusBarText("[green]Saved:[white] " + newKey)
+		}
+		g.app.SetRoot(g.rootFlex, true)
+	})
+
+	form.AddButton("Cancel", func() {
+		g.app.SetRoot(g.rootFlex, true)
+	})
+
+	form.SetBorder(true).SetTitle(" Edit Key ").SetTitleAlign(tview.AlignLeft)
+	form.SetCancelFunc(func() {
+		g.app.SetRoot(g.rootFlex, true)
+	})
+
+	g.app.SetRoot(form, true)
 }
