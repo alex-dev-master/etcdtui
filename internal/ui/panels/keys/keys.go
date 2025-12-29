@@ -2,6 +2,7 @@ package keys
 
 import (
 	"context"
+	"sort"
 	"strings"
 	"sync"
 
@@ -9,6 +10,18 @@ import (
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
+
+// treeNode represents a node that can be both a key and a directory
+type treeNode struct {
+	kv       *client.KeyValue // nil if this is just a directory
+	children map[string]*treeNode
+}
+
+func newTreeNode() *treeNode {
+	return &treeNode{
+		children: make(map[string]*treeNode),
+	}
+}
 
 // Panel represents the keys tree panel (left side)
 type Panel struct {
@@ -47,64 +60,81 @@ func (p *Panel) LoadKeys(ctx context.Context, kvs []*client.KeyValue) error {
 	tree := buildHierarchy(kvs)
 
 	// Add nodes to tview tree
-	for key, value := range tree {
-		p.addNode(root, key, value)
-	}
+	p.addNodes(root, tree)
 
 	return nil
 }
 
 // buildHierarchy converts flat key list to hierarchical structure
-func buildHierarchy(kvs []*client.KeyValue) map[string]interface{} {
-	tree := make(map[string]interface{})
+func buildHierarchy(kvs []*client.KeyValue) *treeNode {
+	root := newTreeNode()
 
 	for _, kv := range kvs {
 		parts := strings.Split(strings.Trim(kv.Key, "/"), "/")
-		current := tree
+		current := root
 
 		for i, part := range parts {
 			if part == "" {
 				continue
 			}
 
-			if i == len(parts)-1 {
-				// Leaf node - store the KeyValue
-				current[part] = kv
-			} else {
-				// Branch node - create nested map
-				if _, exists := current[part]; !exists {
-					current[part] = make(map[string]interface{})
-				}
-				if nested, ok := current[part].(map[string]interface{}); ok {
-					current = nested
-				}
+			// Create child node if doesn't exist
+			if _, exists := current.children[part]; !exists {
+				current.children[part] = newTreeNode()
 			}
+
+			if i == len(parts)-1 {
+				// This is the actual key - set the kv
+				current.children[part].kv = kv
+			}
+
+			current = current.children[part]
 		}
 	}
 
-	return tree
+	return root
 }
 
-// addNode recursively adds nodes to the tree
-func (p *Panel) addNode(parent *tview.TreeNode, key string, value interface{}) {
-	switch v := value.(type) {
-	case *client.KeyValue:
-		// Leaf node - actual key
-		node := tview.NewTreeNode(key).
-			SetReference(v).
-			SetColor(tcell.ColorGreen)
-		parent.AddChild(node)
+// addNodes recursively adds nodes to the tview tree
+func (p *Panel) addNodes(parent *tview.TreeNode, node *treeNode) {
+	// Sort children keys for consistent display
+	keys := make([]string, 0, len(node.children))
+	for k := range node.children {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
 
-	case map[string]interface{}:
-		// Branch node - directory
-		node := tview.NewTreeNode(key).
-			SetColor(tcell.NewRGBColor(0, 255, 255)). // Cyan
-			SetExpanded(false)
-		parent.AddChild(node)
+	for _, key := range keys {
+		child := node.children[key]
+		hasChildren := len(child.children) > 0
+		isKey := child.kv != nil
+
+		// Build display text with indicator
+		displayText := key
+		if hasChildren {
+			displayText = "▶ " + key
+		}
+
+		var treeNode *tview.TreeNode
+
+		if isKey {
+			// This is an actual key (may also have children)
+			treeNode = tview.NewTreeNode(displayText).
+				SetReference(child.kv).
+				SetColor(tcell.ColorGreen).
+				SetExpanded(false)
+		} else {
+			// This is just a directory (no value)
+			treeNode = tview.NewTreeNode(displayText).
+				SetColor(tcell.ColorAqua).
+				SetExpanded(false)
+		}
+
+		parent.AddChild(treeNode)
 
 		// Recursively add children
-		for childKey, childValue := range v {
-			p.addNode(node, childKey, childValue)
+		if hasChildren {
+			p.addNodes(treeNode, child)
 		}
 	}
 }

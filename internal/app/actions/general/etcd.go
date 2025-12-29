@@ -23,16 +23,26 @@ func (s *State) InitConnection(ctx context.Context) error {
 		return err
 	}
 
-	// Handle tree node selection
+	// Enter key - toggle expand/collapse
 	s.keysPanel.GetTree().SetSelectedFunc(func(node *tview.TreeNode) {
-		reference := node.GetReference()
-		if reference == nil {
+		children := node.GetChildren()
+		if len(children) > 0 {
 			node.SetExpanded(!node.IsExpanded())
-			return
 		}
+	})
 
-		if kv, ok := reference.(*client.KeyValue); ok {
-			s.showKeyDetails(ctx, kv)
+	// Navigation (arrow keys) - show details when moving to a node
+	s.keysPanel.GetTree().SetChangedFunc(func(node *tview.TreeNode) {
+		reference := node.GetReference()
+		if reference != nil {
+			if kv, ok := reference.(*client.KeyValue); ok {
+				s.showKeyDetails(ctx, kv)
+			}
+		} else {
+			// Clear details for directory-only nodes
+			s.detailsPanel.SetText("[yellow]Directory[white]\n\nSelect a key to view details")
+			s.detailsPanel.HideButtons()
+			s.currentKey = nil
 		}
 	})
 

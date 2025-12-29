@@ -31,44 +31,30 @@ func (s *State) HandleEdit(ctx context.Context) {
 	// Create form for editing
 	form := tview.NewForm()
 
-	// Add Key input field
-	form.AddInputField("Key", kv.Key, 50, nil, nil)
+	form.AddTextView("Key", kv.Key, 50, 5, true, false)
 
 	// Add Value text area
-	form.AddTextArea("Value", kv.Value, 50, 5, 0, nil)
+	form.AddTextArea("Value", kv.Value, 50, 0, 0, nil)
 
 	form.AddButton("Save", func() {
-		newKey := form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
 		newValue := form.GetFormItemByLabel("Value").(*tview.TextArea).GetText()
+		s.debugPanel.LogDebug("Save button clicked - Key: %s, Value length: %d", kv.Key, len(newValue))
 
-		s.debugPanel.LogDebug("Save button clicked - Key: %s, Value length: %d", newKey, len(newValue))
-
-		// If key changed, delete old and create new
-		if newKey != kv.Key {
-			s.debugPanel.LogInfo("Key renamed from '%s' to '%s'", kv.Key, newKey)
-			if err := s.DeleteKey(ctx, kv.Key); err != nil {
-				s.SetStatusBarText("[red]Failed to delete old key:[white] " + err.Error())
-				s.debugPanel.LogError("Failed to delete old key '%s': %v", kv.Key, err)
-				closeForm()
-				return
-			}
-		}
-
-		if err := s.PutKey(ctx, newKey, newValue); err != nil {
+		if err := s.PutKey(ctx, kv.Key, newValue); err != nil {
 			s.SetStatusBarText("[red]Failed to save:[white] " + err.Error())
-			s.debugPanel.LogError("Failed to save key '%s': %v", newKey, err)
+			s.debugPanel.LogError("Failed to save key '%s': %v", kv.Key, err)
 			closeForm()
 			return
 		}
 
-		s.debugPanel.LogInfo("Successfully saved key: %s", newKey)
+		s.debugPanel.LogInfo("Successfully saved key: %s", kv.Key)
 
 		// Refresh details for the updated key
-		if err := s.RefreshKeyDetails(ctx, newKey); err != nil {
+		if err := s.RefreshKeyDetails(ctx, kv.Key); err != nil {
 			s.SetStatusBarText("[yellow]Saved but failed to refresh details:[white] " + err.Error())
 			s.debugPanel.LogWarn("Saved but failed to refresh details: %v", err)
 		} else {
-			s.SetStatusBarText("[green]Saved:[white] " + newKey)
+			s.SetStatusBarText("[green]Saved:[white] " + kv.Key)
 		}
 
 		closeForm()
@@ -103,10 +89,14 @@ func (s *State) HandleDelete(ctx context.Context) {
 		return
 	}
 
+	// Enable edit mode to bypass global input capture
+	s.SetEditMode(true)
+
 	modal := tview.NewModal().
 		SetText("Delete key: " + kv.Key + "?").
 		AddButtons([]string{"Delete", "Cancel"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			s.SetEditMode(false)
 			s.app.SetRoot(s.rootFlex, true)
 			if buttonLabel == "Delete" {
 				if err := s.DeleteKey(ctx, kv.Key); err != nil {
@@ -151,8 +141,8 @@ func (s *State) HandleDetailsAction(ctx context.Context, action details.ActionTy
 		// Don't restore focus - edit form handles its own focus
 		s.HandleEdit(ctx)
 	case details.ActionDelete:
+		// Don't restore focus - delete modal handles its own focus
 		s.HandleDelete(ctx)
-		s.app.SetFocus(s.keysPanel.GetTree())
 	case details.ActionWatch:
 		s.HandleWatch(ctx)
 		s.app.SetFocus(s.keysPanel.GetTree())
@@ -160,6 +150,75 @@ func (s *State) HandleDetailsAction(ctx context.Context, action details.ActionTy
 		s.HandleCopy(ctx)
 		s.app.SetFocus(s.keysPanel.GetTree())
 	}
+}
+
+// HandleCreateNewKey create new key.
+func (s *State) HandleCreateNewKey(ctx context.Context) {
+	s.debugPanel.LogInfo("Opening form for new key")
+
+	// Enable edit mode to bypass global input capture
+	s.SetEditMode(true)
+
+	// Helper to close form and restore main view
+	closeForm := func() {
+		s.SetEditMode(false)
+		s.app.SetRoot(s.rootFlex, true)
+	}
+
+	// Create form for editing
+	form := tview.NewForm()
+
+	// Add Key input field
+	form.AddInputField("Key", "", 50, nil, nil)
+
+	// Add Value text area
+	form.AddTextArea("Value", "", 50, 5, 0, nil)
+
+	form.AddButton("Save", func() {
+		newKey := form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
+		newValue := form.GetFormItemByLabel("Value").(*tview.TextArea).GetText()
+
+		s.debugPanel.LogDebug("Save button clicked - Key: %s, Value length: %d", newKey, len(newValue))
+
+		if err := s.PutKey(ctx, newKey, newValue); err != nil {
+			s.SetStatusBarText("[red]Failed to save:[white] " + err.Error())
+			s.debugPanel.LogError("Failed to save key '%s': %v", newKey, err)
+			closeForm()
+			return
+		}
+
+		s.debugPanel.LogInfo("Successfully saved new key: %s", newKey)
+
+		// Refresh details for the updated key
+		if err := s.RefreshKeyDetails(ctx, newKey); err != nil {
+			s.SetStatusBarText("[yellow]Saved but failed to refresh details:[white] " + err.Error())
+			s.debugPanel.LogWarn("Saved but failed to refresh details: %v", err)
+		} else {
+			s.SetStatusBarText("[green]Saved:[white] " + newKey)
+		}
+
+		closeForm()
+	})
+
+	form.AddButton("Cancel", func() {
+		closeForm()
+	})
+
+	// Setup ESC to close the form
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			closeForm()
+			return nil
+		}
+		return event
+	})
+
+	form.SetBorder(true).SetTitle(" Create Key (Tab to navigate, ESC cancel) ").SetTitleAlign(tview.AlignLeft)
+	form.SetCancelFunc(closeForm)
+
+	// Set root and focus on first form field
+	s.app.SetRoot(form, true)
+	form.SetFocus(0)
 }
 
 // ToggleDebugPanel shows/hides the debug panel.
@@ -180,6 +239,9 @@ func (s *State) ToggleDebugPanel(contentFlex *tview.Flex) {
 
 // ShowHelp displays the help modal.
 func (s *State) ShowHelp() {
+	// Enable edit mode to bypass global input capture
+	s.SetEditMode(true)
+
 	modal := tview.NewModal().
 		SetText(`etcdtui - Interactive TUI for etcd
 
@@ -198,9 +260,9 @@ Quick Actions:
   e           - Edit key/value
   d           - Delete key
   r           - Refresh keys
+  n           - New key
   w           - Watch mode (TODO)
   c           - Copy value (TODO)
-  n           - New key (TODO)
   /           - Search (TODO)
 
 Debug:
@@ -212,6 +274,7 @@ Other:
   ESC         - Cancel/Close modal`).
 		AddButtons([]string{"Close"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+			s.SetEditMode(false)
 			s.app.SetRoot(s.rootFlex, true)
 		})
 

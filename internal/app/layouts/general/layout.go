@@ -63,7 +63,8 @@ func (l *Layout) Render(ctx context.Context) error {
 	// Set root flex in state for modals to return
 	l.state.SetRootFlex(l.rootFlex)
 
-	l.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+	// Set input capture through state so it can be disabled/restored for modals
+	l.state.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		return l.handleInput(ctx, event)
 	})
 
@@ -118,7 +119,7 @@ func (l *Layout) handleInput(ctx context.Context, event *tcell.EventKey) *tcell.
 		l.state.SetStatusBarText("[yellow]Search:[white] [not implemented yet]")
 		return nil
 	case 'n':
-		l.state.SetStatusBarText("[yellow]New key:[white] [not implemented yet]")
+		l.state.HandleCreateNewKey(ctx)
 		return nil
 	case 'r':
 		if err := l.state.RefreshKeys(ctx); err != nil {
