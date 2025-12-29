@@ -173,3 +173,27 @@ func (s *State) RefreshKeyDetails(ctx context.Context, key string) error {
 	s.showKeyDetails(ctx, kv)
 	return nil
 }
+
+// SearchByPrefix searches keys by prefix and updates the tree.
+func (s *State) SearchByPrefix(ctx context.Context, prefix string) error {
+	cli := s.connManager.GetClient()
+	if cli == nil {
+		return fmt.Errorf("not connected to etcd")
+	}
+
+	kvs, err := cli.List(ctx, prefix)
+	if err != nil {
+		return fmt.Errorf("failed to search keys: %w", err)
+	}
+
+	if err = s.keysPanel.LoadKeys(ctx, kvs); err != nil {
+		return fmt.Errorf("failed to load search results: %w", err)
+	}
+
+	// Clear current key selection and details
+	s.currentKey = nil
+	s.detailsPanel.SetText(fmt.Sprintf("[yellow]Search results for:[white] %s\n\n[cyan]%d keys found[-]", prefix, len(kvs)))
+	s.detailsPanel.HideButtons()
+
+	return nil
+}

@@ -223,6 +223,71 @@ func (s *State) HandleDetailsAction(ctx context.Context, action details.ActionTy
 	}
 }
 
+// HandleSearch shows search input for prefix search.
+func (s *State) HandleSearch(ctx context.Context) {
+	s.debugPanel.LogInfo("Opening search form")
+
+	// Enable edit mode to bypass global input capture
+	s.SetEditMode(true)
+
+	// Helper to close form and restore main view
+	closeForm := func() {
+		s.SetEditMode(false)
+		s.app.SetRoot(s.rootFlex, true)
+	}
+
+	// Create form for search
+	form := tview.NewForm()
+
+	// Add prefix input field
+	form.AddInputField("Prefix", "/", 50, nil, nil)
+
+	form.AddButton("Search", func() {
+		prefix := form.GetFormItemByLabel("Prefix").(*tview.InputField).GetText()
+		s.debugPanel.LogDebug("Search button clicked - Prefix: %s", prefix)
+
+		if err := s.SearchByPrefix(ctx, prefix); err != nil {
+			s.SetStatusBarText("[red]Search failed:[white] " + err.Error())
+			s.debugPanel.LogError("Search failed: %v", err)
+		} else {
+			s.SetStatusBarText("[green]Search:[white] " + prefix)
+			s.debugPanel.LogInfo("Search completed for prefix: %s", prefix)
+		}
+
+		closeForm()
+	})
+
+	form.AddButton("Clear", func() {
+		// Reload all keys
+		if err := s.RefreshKeys(ctx); err != nil {
+			s.SetStatusBarText("[red]Failed to reload keys:[white] " + err.Error())
+		} else {
+			s.SetStatusBarText("[green]All keys loaded")
+		}
+		closeForm()
+	})
+
+	form.AddButton("Cancel", func() {
+		closeForm()
+	})
+
+	// Setup ESC to close the form
+	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			closeForm()
+			return nil
+		}
+		return event
+	})
+
+	form.SetBorder(true).SetTitle(" Search by Prefix (Tab to navigate, ESC cancel) ").SetTitleAlign(tview.AlignLeft)
+	form.SetCancelFunc(closeForm)
+
+	// Set root and focus on first form field
+	s.app.SetRoot(form, true)
+	form.SetFocus(0)
+}
+
 // HandleCreateNewKey create new key.
 func (s *State) HandleCreateNewKey(ctx context.Context) {
 	s.debugPanel.LogInfo("Opening form for new key")
@@ -326,8 +391,8 @@ func (s *State) ShowHelp() {
   [green]d[-]           Delete key
   [green]n[-]           New key
   [green]r[-]           Refresh keys
-  [green]w[-]           Watch mode [gray](TODO)[-]
-  [green]/[-]           Search [gray](TODO)[-]
+  [green]w[-]           Watch mode
+  [green]/[-]           Search by prefix
 
 [cyan::b]Forms[-:-:-]
   [green]Tab[-]         Navigate between fields

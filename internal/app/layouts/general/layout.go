@@ -116,7 +116,7 @@ func (l *Layout) handleInput(ctx context.Context, event *tcell.EventKey) *tcell.
 		l.state.ShowHelp()
 		return nil
 	case '/':
-		l.state.SetStatusBarText("[yellow]Search:[white] [not implemented yet]")
+		l.state.HandleSearch(ctx)
 		return nil
 	case 'n':
 		l.state.HandleCreateNewKey(ctx)
