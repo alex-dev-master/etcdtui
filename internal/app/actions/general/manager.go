@@ -17,6 +17,7 @@ type General struct {
 	detailsPanel   *details.Panel
 	statusBarPanel *statusbar.Panel
 	connManager    *etcd.Manager
+	currentKey     *client.KeyValue // Currently selected key
 }
 
 func NewGeneral() *General {
@@ -79,6 +80,9 @@ func (g *General) seedingKeysData(ctx context.Context) (err error) {
 
 // showKeyDetails displays detailed information about a key
 func (g *General) showKeyDetails(ctx context.Context, kv *client.KeyValue) {
+	// Store current key
+	g.currentKey = kv
+
 	detailsText := fmt.Sprintf("[yellow]Key:[white] %s\n\n", kv.Key)
 	detailsText += fmt.Sprintf("[yellow]Value:[white]\n%s\n\n", kv.Value)
 	detailsText += fmt.Sprintf("[yellow]Create Revision:[white] %d\n", kv.CreateRevision)
@@ -98,9 +102,13 @@ func (g *General) showKeyDetails(ctx context.Context, kv *client.KeyValue) {
 		detailsText += "[yellow]TTL:[white] ∞\n"
 	}
 
-	detailsText += "\n[green][e][white] Edit  [green][d][white] Delete  [green][w][white] Watch  [green][c][white] Copy"
-
 	g.detailsPanel.SetText(detailsText)
+	g.detailsPanel.ShowButtons()
+}
+
+// GetCurrentKey returns the currently selected key
+func (g *General) GetCurrentKey() *client.KeyValue {
+	return g.currentKey
 }
 
 // RefreshKeys reloads keys from etcd
@@ -173,6 +181,24 @@ func (g *General) PutKey(ctx context.Context, key, value string) error {
 
 	// Refresh tree
 	return g.RefreshKeys(ctx)
+}
+
+// RefreshKeyDetails refreshes details for a specific key
+func (g *General) RefreshKeyDetails(ctx context.Context, key string) error {
+	cli := g.connManager.GetClient()
+	if cli == nil {
+		return fmt.Errorf("not connected to etcd")
+	}
+
+	// Get updated key value
+	kv, err := cli.Get(ctx, key)
+	if err != nil {
+		return fmt.Errorf("failed to get key: %w", err)
+	}
+
+	// Update details panel
+	g.showKeyDetails(ctx, kv)
+	return nil
 }
 
 func (g *General) GetKeysPanel() *keys.Panel {

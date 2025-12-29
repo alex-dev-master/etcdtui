@@ -177,4 +177,4 @@ MIT License - see [LICENSE](LICENSE) file for details
 
 ## Author
 
-Alexandr - [@alexandr](https://github.com/alexandr)
+Alexandr - [@alex-dev-master](https://github.com/alex-dev-master)
