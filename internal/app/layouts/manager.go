@@ -7,23 +7,22 @@ import (
 	"github.com/rivo/tview"
 )
 
+// Manager manages application layouts.
 type Manager struct {
-	generalLayout *general.General
+	generalLayout *general.Layout
 	app           *tview.Application
 }
 
+// NewManager creates a new layout manager.
 func NewManager() *Manager {
 	app := tview.NewApplication()
 	return &Manager{
-		generalLayout: general.NewGeneral(app),
+		generalLayout: general.NewLayout(app),
 		app:           app,
 	}
 }
 
-func (m *Manager) Render(ctx context.Context) (err error) {
-	return m.generalLayoutRender(ctx)
-}
-
-func (m *Manager) generalLayoutRender(ctx context.Context) (err error) {
+// Render renders the current layout.
+func (m *Manager) Render(ctx context.Context) error {
 	return m.generalLayout.Render(ctx)
 }
