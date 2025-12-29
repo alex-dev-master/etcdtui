@@ -21,6 +21,9 @@ const (
 // ActionCallback is called when a button is pressed
 type ActionCallback func(action ActionType)
 
+// TabCallback is called when Tab is pressed in the form
+type TabCallback func()
+
 // Panel represents the details panel (right side)
 type Panel struct {
 	flex          *tview.Flex
@@ -28,6 +31,7 @@ type Panel struct {
 	form          *tview.Form
 	once          sync.Once
 	callback      ActionCallback
+	tabCallback   TabCallback
 	buttonsShown  bool
 	currentButton int
 	mu            sync.Mutex
@@ -52,7 +56,7 @@ func (p *Panel) initialize() {
 	// Setup TextView
 	p.textView.
 		SetDynamicColors(true).
-		SetText("[yellow]Select a key to view details[white]\n\nKeyboard Navigation:\n[green]↓/↑[white] or [green]j/k[white] - Navigate tree\n[green]Enter[white] - Select key\n[green]Tab[white] - Switch to buttons\n[green]←/→[white] or [green]h/l[white] - Navigate buttons\n[green]Enter[white] - Activate button\n\n[green]e[white] Edit  [green]d[white] Delete  [green]r[white] Refresh  [green]?[white] Help  [green]q[white] Quit").
+		SetText("[yellow]Select a key to view details[white]\n\nKeyboard Navigation:\n[green]↓/↑[white] or [green]j/k[white] - Navigate tree\n[green]Enter[white] - Select key\n[green]Tab[white] - Switch panels (Keys ↔ Details)\n[green]←/→[white] or [green]h/l[white] - Navigate buttons\n[green]Enter[white] - Activate button\n\nQuick Actions:\n[green]e[white] Edit  [green]d[white] Delete  [green]r[white] Refresh  [green]?[white] Help  [green]q[white] Quit").
 		SetScrollable(true)
 
 	// Setup Form with buttons
@@ -89,6 +93,14 @@ func (p *Panel) initialize() {
 
 	// Setup input capture for button navigation
 	p.form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		// Handle Tab to switch back to Keys panel
+		if event.Key() == tcell.KeyTab || event.Key() == tcell.KeyBacktab {
+			if p.tabCallback != nil {
+				p.tabCallback()
+				return nil
+			}
+		}
+
 		p.mu.Lock()
 		defer p.mu.Unlock()
 
@@ -172,6 +184,11 @@ func (p *Panel) HideButtons() {
 // SetActionCallback sets the callback for button actions
 func (p *Panel) SetActionCallback(callback ActionCallback) {
 	p.callback = callback
+}
+
+// SetTabCallback sets the callback for Tab key
+func (p *Panel) SetTabCallback(callback TabCallback) {
+	p.tabCallback = callback
 }
 
 // GetForm returns the form (for focus management)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/alexandr/etcdtui/internal/app/connection/etcd"
+	"github.com/alexandr/etcdtui/internal/ui/panels/debug"
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
 	"github.com/alexandr/etcdtui/internal/ui/panels/keys"
 	"github.com/alexandr/etcdtui/internal/ui/panels/statusbar"
@@ -16,6 +17,7 @@ type General struct {
 	keysPanel      *keys.Panel
 	detailsPanel   *details.Panel
 	statusBarPanel *statusbar.Panel
+	debugPanel     *debug.Panel
 	connManager    *etcd.Manager
 	currentKey     *client.KeyValue // Currently selected key
 }
@@ -25,6 +27,7 @@ func NewGeneral() *General {
 		keysPanel:      keys.New(),
 		detailsPanel:   details.New(),
 		statusBarPanel: statusbar.New(),
+		debugPanel:     debug.New(),
 		connManager:    etcd.NewManager(),
 	}
 }
@@ -211,6 +214,10 @@ func (g *General) GetDetailsPanel() *details.Panel {
 
 func (g *General) GetStatusBarPanel() *statusbar.Panel {
 	return g.statusBarPanel
+}
+
+func (g *General) GetDebugPanel() *debug.Panel {
+	return g.debugPanel
 }
 
 func (g *General) SetStatusBarText(text string) {

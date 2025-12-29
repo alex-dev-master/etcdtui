@@ -12,7 +12,7 @@ build:
 
 run:
 	@echo "Running $(APP_NAME)..."
-	go run $(MAIN_PATH)
+	TERM=xterm-256color go run $(MAIN_PATH)
 
 test:
 	@echo "Running tests..."

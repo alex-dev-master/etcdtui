@@ -15,7 +15,9 @@ type General struct {
 	app            *tview.Application
 	rootFlex       *tview.Flex
 	mainFlex       *tview.Flex
+	contentFlex    *tview.Flex // Flex for main content + debug panel
 	ctx            context.Context
+	inEditMode     bool // Flag to disable global input capture during edit
 }
 
 func NewGeneral(app *tview.Application) *General {
@@ -32,15 +34,24 @@ func (g *General) Render(ctx context.Context) (err error) {
 	// Setup action callback for details panel
 	g.generalActions.GetDetailsPanel().SetActionCallback(g.handleDetailsAction)
 
+	// Setup tab callback for details panel to switch focus back to keys
+	g.generalActions.GetDetailsPanel().SetTabCallback(func() {
+		g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
+	})
+
 	// Layout: tree on left, details on right
 	g.mainFlex = tview.NewFlex().
 		AddItem(g.generalActions.GetKeysPanel().GetTree(), 0, 1, true).
 		AddItem(g.generalActions.GetDetailsPanel().GetView(), 0, 2, false)
 
+	// Content flex: main view + optional debug panel (side by side)
+	g.contentFlex = tview.NewFlex().
+		AddItem(g.mainFlex, 0, 1, true)
+
 	// Main layout with status bar at bottom
 	g.rootFlex = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(g.mainFlex, 0, 1, true).
+		AddItem(g.contentFlex, 0, 1, true).
 		AddItem(g.generalActions.GetStatusBarPanel().GetView(), 1, 0, false)
 
 	g.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
@@ -58,6 +69,15 @@ func (g *General) GetRootFlex() *tview.Flex {
 }
 
 func (g *General) GetInputCapture(ctx context.Context, event *tcell.EventKey) *tcell.EventKey {
+	// When in edit mode, only handle Ctrl+C, pass everything else through
+	if g.inEditMode {
+		if event.Key() == tcell.KeyCtrlC {
+			g.app.Stop()
+			return nil
+		}
+		return event
+	}
+
 	// Don't intercept keys when we're not in the main view
 	// This allows forms, modals, etc. to handle their own input
 	if g.app.GetFocus() != g.generalActions.GetKeysPanel().GetTree() &&
@@ -74,17 +94,23 @@ func (g *General) GetInputCapture(ctx context.Context, event *tcell.EventKey) *t
 	case tcell.KeyCtrlC:
 		g.app.Stop()
 		return nil
+	case tcell.KeyF1:
+		// Toggle debug panel
+		g.toggleDebugPanel()
+		return nil
 	case tcell.KeyTab:
-		// Switch focus between tree and details panel
+		// Switch focus from tree to details panel
 		current := g.app.GetFocus()
 		if current == g.generalActions.GetKeysPanel().GetTree() {
-			// Switch to details panel buttons
+			// Switch to details panel buttons - only if buttons are shown
 			g.app.SetFocus(g.generalActions.GetDetailsPanel().GetForm())
-		} else {
-			// Switch back to tree
+			return nil
+		} else if current == g.generalActions.GetStatusBarPanel().GetView() {
 			g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
+			return nil
 		}
-		return nil
+		// Let other views handle Tab themselves
+		return event
 	}
 
 	switch event.Rune() {
@@ -128,20 +154,28 @@ func (g *General) showHelp(app *tview.Application, rootView tview.Primitive) {
 	modal := tview.NewModal().
 		SetText(`etcdtui - Interactive TUI for etcd
 
-Keyboard Shortcuts:
+Navigation:
   ↓/↑ or j/k  - Navigate tree
   Enter       - Expand/collapse or select key
-  Tab         - Switch between panels
-  ←/→ or h/l  - Navigate buttons in details panel
+  Tab         - Switch panels (Keys ↔ Details)
+  ←/→ or h/l  - Navigate buttons (in Details panel)
 
-Actions:
+Edit Form Navigation:
+  ↓/↑         - Navigate between fields and buttons
+  Enter       - Activate button or new line in text
+  ESC         - Cancel and close
+
+Quick Actions:
   e           - Edit key/value
   d           - Delete key
+  r           - Refresh keys
   w           - Watch mode (TODO)
   c           - Copy value (TODO)
   n           - New key (TODO)
-  r           - Refresh keys
   /           - Search (TODO)
+
+Debug:
+  F1          - Toggle debug panel
 
 Other:
   ?           - Show this help
@@ -186,134 +220,86 @@ func (g *General) handleEdit(ctx context.Context) {
 	kv := g.generalActions.GetCurrentKey()
 	if kv == nil {
 		g.generalActions.SetStatusBarText("[yellow]No key selected")
+		g.generalActions.GetDebugPanel().LogWarn("Edit attempted with no key selected")
 		return
+	}
+
+	g.generalActions.GetDebugPanel().LogInfo("Opening edit form for key: %s", kv.Key)
+
+	// Enable edit mode to bypass global input capture
+	g.inEditMode = true
+
+	// Helper to close form and restore main view
+	closeForm := func() {
+		g.inEditMode = false
+		g.app.SetRoot(g.rootFlex, true)
 	}
 
 	// Create form for editing
 	form := tview.NewForm()
 
-	// Add Key input field with navigation
-	keyField := tview.NewInputField().
-		SetLabel("Key").
-		SetText(kv.Key).
-		SetFieldWidth(50)
+	// Add Key input field
+	form.AddInputField("Key", kv.Key, 50, nil, nil)
 
-	keyField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyDown {
-			// Move to Value field
-			form.SetFocus(1) // Index 1 = Value TextArea
-			return nil
-		}
-		return event
-	})
-
-	form.AddFormItem(keyField)
-
-	// Add Value text area with navigation
-	valueField := tview.NewTextArea().
-		SetLabel("Value").
-		SetSize(5, 50)
-
-	// Set text separately to ensure it's displayed
-	if kv.Value != "" {
-		valueField.SetText(kv.Value, true)
-	}
-
-	valueField.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		if event.Key() == tcell.KeyUp {
-			// Check if cursor is on first line
-			row, _, _, _ := valueField.GetCursor()
-			if row == 0 {
-				// Move to Key field
-				form.SetFocus(0) // Index 0 = Key InputField
-				return nil
-			}
-		} else if event.Key() == tcell.KeyDown {
-			// Check if cursor is on last line
-			row, _, _, _ := valueField.GetCursor()
-			text := valueField.GetText()
-
-			// Count lines in text
-			lines := 1
-			for _, ch := range text {
-				if ch == '\n' {
-					lines++
-				}
-			}
-
-			// If on last line, move to buttons
-			if row >= lines-1 {
-				form.SetFocus(2) // Index 2 = First button
-				return nil
-			}
-		}
-		return event
-	})
-
-	form.AddFormItem(valueField)
+	// Add Value text area
+	form.AddTextArea("Value", kv.Value, 50, 5, 0, nil)
 
 	form.AddButton("Save", func() {
-		newKey := keyField.GetText()
-		newValue := valueField.GetText()
+		newKey := form.GetFormItemByLabel("Key").(*tview.InputField).GetText()
+		newValue := form.GetFormItemByLabel("Value").(*tview.TextArea).GetText()
+
+		g.generalActions.GetDebugPanel().LogDebug("Save button clicked - Key: %s, Value length: %d", newKey, len(newValue))
 
 		// If key changed, delete old and create new
 		if newKey != kv.Key {
+			g.generalActions.GetDebugPanel().LogInfo("Key renamed from '%s' to '%s'", kv.Key, newKey)
 			if err := g.generalActions.DeleteKey(ctx, kv.Key); err != nil {
 				g.generalActions.SetStatusBarText("[red]Failed to delete old key:[white] " + err.Error())
-				g.app.SetRoot(g.rootFlex, true)
+				g.generalActions.GetDebugPanel().LogError("Failed to delete old key '%s': %v", kv.Key, err)
+				closeForm()
 				return
 			}
 		}
 
 		if err := g.generalActions.PutKey(ctx, newKey, newValue); err != nil {
 			g.generalActions.SetStatusBarText("[red]Failed to save:[white] " + err.Error())
-			g.app.SetRoot(g.rootFlex, true)
+			g.generalActions.GetDebugPanel().LogError("Failed to save key '%s': %v", newKey, err)
+			closeForm()
 			return
 		}
+
+		g.generalActions.GetDebugPanel().LogInfo("Successfully saved key: %s", newKey)
 
 		// Refresh details for the updated key
 		if err := g.generalActions.RefreshKeyDetails(ctx, newKey); err != nil {
 			g.generalActions.SetStatusBarText("[yellow]Saved but failed to refresh details:[white] " + err.Error())
+			g.generalActions.GetDebugPanel().LogWarn("Saved but failed to refresh details: %v", err)
 		} else {
 			g.generalActions.SetStatusBarText("[green]Saved:[white] " + newKey)
 		}
 
-		g.app.SetRoot(g.rootFlex, true)
+		closeForm()
 	})
 
 	form.AddButton("Cancel", func() {
-		g.app.SetRoot(g.rootFlex, true)
+		closeForm()
 	})
 
-	// Setup ESC to close the form and arrow navigation for buttons
+	// Setup ESC to close the form
 	form.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		if event.Key() == tcell.KeyEsc {
-			g.app.SetRoot(g.rootFlex, true)
+			closeForm()
 			return nil
 		}
-
-		// Check if we're on buttons
-		focusedItem, _ := form.GetFocusedItemIndex()
-		if focusedItem >= 2 { // Buttons start at index 2
-			if event.Key() == tcell.KeyUp {
-				// Move from buttons to Value field
-				form.SetFocus(1)
-				return nil
-			}
-		}
-
-		// Pass through all other keys to form fields
 		return event
 	})
 
-	form.SetBorder(true).SetTitle(" Edit Key (ESC to cancel) ").SetTitleAlign(tview.AlignLeft)
-	form.SetCancelFunc(func() {
-		g.app.SetRoot(g.rootFlex, true)
-	})
+	form.SetBorder(true).SetTitle(" Edit Key (Tab to navigate, ESC cancel) ").SetTitleAlign(tview.AlignLeft)
+	form.SetCancelFunc(closeForm)
 
-	// Set root and focus on the Key field
+	// Set root and focus on first form field
 	g.app.SetRoot(form, true)
-	g.app.SetFocus(keyField)
+	form.SetFocus(0)
 }
 
 // handleWatch shows watch mode for the selected key
@@ -342,17 +328,39 @@ func (g *General) handleCopy(ctx context.Context) {
 
 // handleDetailsAction handles actions from the details panel buttons
 func (g *General) handleDetailsAction(action details.ActionType) {
-	// Switch back to tree focus after action
-	defer g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
-
 	switch action {
 	case details.ActionEdit:
+		// Don't restore focus - edit form handles its own focus
 		g.handleEdit(g.ctx)
 	case details.ActionDelete:
 		g.handleDelete(g.ctx)
+		g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
 	case details.ActionWatch:
 		g.handleWatch(g.ctx)
+		g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
 	case details.ActionCopy:
 		g.handleCopy(g.ctx)
+		g.app.SetFocus(g.generalActions.GetKeysPanel().GetTree())
+	}
+}
+
+// toggleDebugPanel shows/hides the debug panel
+func (g *General) toggleDebugPanel() {
+	debugPanel := g.generalActions.GetDebugPanel()
+
+	if debugPanel.IsVisible() {
+		// Log before hiding
+		debugPanel.LogInfo("Debug panel hidden")
+		// Hide debug panel
+		g.contentFlex.RemoveItem(debugPanel.GetView())
+		debugPanel.SetVisible(false)
+		g.generalActions.SetStatusBarText("[yellow]Debug panel hidden (F1 to show)")
+	} else {
+		// Show debug panel on the right side
+		g.contentFlex.AddItem(debugPanel.GetView(), 0, 1, false)
+		debugPanel.SetVisible(true)
+		g.generalActions.SetStatusBarText("[yellow]Debug panel visible (F1 to hide)")
+		debugPanel.LogInfo("Debug panel shown")
+		debugPanel.LogInfo("Application started in debug mode")
 	}
 }
