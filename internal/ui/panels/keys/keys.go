@@ -12,9 +12,8 @@ import (
 
 // Panel represents the keys tree panel (left side)
 type Panel struct {
-	tree   *tview.TreeView
-	once   sync.Once
-	client *client.Client
+	tree *tview.TreeView
+	once sync.Once
 }
 
 // New creates a new keys panel
@@ -22,11 +21,6 @@ func New() *Panel {
 	return &Panel{
 		tree: tview.NewTreeView(),
 	}
-}
-
-// SetClient sets the etcd client for the panel
-func (p *Panel) SetClient(cli *client.Client) {
-	p.client = cli
 }
 
 // Draw initializes the keys tree
@@ -44,17 +38,7 @@ func (p *Panel) initialize() {
 }
 
 // LoadKeys loads all keys from etcd and builds the tree
-func (p *Panel) LoadKeys(ctx context.Context) error {
-	if p.client == nil {
-		return nil // No client, show empty tree
-	}
-
-	// Get all keys from etcd
-	kvs, err := p.client.List(ctx, "")
-	if err != nil {
-		return err
-	}
-
+func (p *Panel) LoadKeys(ctx context.Context, kvs []*client.KeyValue) error {
 	// Clear existing tree
 	root := p.tree.GetRoot()
 	root.ClearChildren()
@@ -128,9 +112,4 @@ func (p *Panel) addNode(parent *tview.TreeNode, key string, value interface{}) {
 // GetTree returns the underlying TreeView
 func (p *Panel) GetTree() *tview.TreeView {
 	return p.tree
-}
-
-// Refresh reloads keys from etcd
-func (p *Panel) Refresh(ctx context.Context) error {
-	return p.LoadKeys(ctx)
 }

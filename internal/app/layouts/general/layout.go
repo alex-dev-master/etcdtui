@@ -1,6 +1,7 @@
 package general
 
 import (
+	"context"
 	"log"
 
 	generalActions "github.com/alexandr/etcdtui/internal/app/actions/general"
@@ -19,8 +20,10 @@ func NewGeneral(app *tview.Application) *General {
 	return &General{generalActions: generalActions.NewGeneral(), app: app}
 }
 
-func (g *General) Render() {
-	g.generalActions.Exec()
+func (g *General) Render(ctx context.Context) (err error) {
+	if err = g.generalActions.Exec(ctx); err != nil {
+		return err
+	}
 	// Layout: tree on left, details on right
 	mainFlex := tview.NewFlex().
 		AddItem(g.generalActions.GetKeysPanel().GetTree(), 0, 1, true).
@@ -33,19 +36,20 @@ func (g *General) Render() {
 		AddItem(g.generalActions.GetStatusBarPanel().GetView(), 1, 0, false)
 
 	g.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
-		return g.GetInputCapture(event)
+		return g.GetInputCapture(ctx, event)
 	})
 
 	if err := g.app.SetRoot(g.rootFlex, true).EnableMouse(true).Run(); err != nil {
 		log.Fatal(err)
 	}
+	return nil
 }
 
 func (g *General) GetRootFlex() *tview.Flex {
 	return g.rootFlex
 }
 
-func (g *General) GetInputCapture(event *tcell.EventKey) *tcell.EventKey {
+func (g *General) GetInputCapture(ctx context.Context, event *tcell.EventKey) *tcell.EventKey {
 	switch event.Key() {
 	case tcell.KeyCtrlC:
 		g.app.Stop()
@@ -68,15 +72,15 @@ func (g *General) GetInputCapture(event *tcell.EventKey) *tcell.EventKey {
 		g.generalActions.SetStatusBarText("[yellow]New key:[white] [not implemented yet]")
 		return nil
 	case 'r':
-		if err := g.generalActions.RefreshKeys(); err != nil {
+		if err := g.generalActions.RefreshKeys(ctx); err != nil {
 			g.generalActions.SetStatusBarText("[red]Failed to refresh:[white] " + err.Error())
 		}
 		return nil
 	case 'd':
-		g.handleDelete()
+		g.handleDelete(ctx)
 		return nil
 	case 'e':
-		g.handleEdit()
+		g.handleEdit(ctx)
 		return nil
 	}
 
@@ -112,7 +116,7 @@ Navigation:
 }
 
 // handleDelete shows confirmation modal and deletes the selected key
-func (g *General) handleDelete() {
+func (g *General) handleDelete(ctx context.Context) {
 	tree := g.generalActions.GetKeysPanel().GetTree()
 	node := tree.GetCurrentNode()
 	if node == nil {
@@ -137,7 +141,7 @@ func (g *General) handleDelete() {
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
 			g.app.SetRoot(g.rootFlex, true)
 			if buttonLabel == "Delete" {
-				if err := g.generalActions.DeleteKey(kv.Key); err != nil {
+				if err := g.generalActions.DeleteKey(ctx, kv.Key); err != nil {
 					g.generalActions.SetStatusBarText("[red]Failed to delete:[white] " + err.Error())
 				} else {
 					g.generalActions.SetStatusBarText("[green]Deleted:[white] " + kv.Key)
@@ -149,7 +153,7 @@ func (g *General) handleDelete() {
 }
 
 // handleEdit shows edit modal for the selected key
-func (g *General) handleEdit() {
+func (g *General) handleEdit(ctx context.Context) {
 	tree := g.generalActions.GetKeysPanel().GetTree()
 	node := tree.GetCurrentNode()
 	if node == nil {
@@ -181,14 +185,14 @@ func (g *General) handleEdit() {
 
 		// If key changed, delete old and create new
 		if newKey != kv.Key {
-			if err := g.generalActions.DeleteKey(kv.Key); err != nil {
+			if err := g.generalActions.DeleteKey(ctx, kv.Key); err != nil {
 				g.generalActions.SetStatusBarText("[red]Failed to delete old key:[white] " + err.Error())
 				g.app.SetRoot(g.rootFlex, true)
 				return
 			}
 		}
 
-		if err := g.generalActions.PutKey(newKey, newValue); err != nil {
+		if err := g.generalActions.PutKey(ctx, newKey, newValue); err != nil {
 			g.generalActions.SetStatusBarText("[red]Failed to save:[white] " + err.Error())
 		} else {
 			g.generalActions.SetStatusBarText("[green]Saved:[white] " + newKey)

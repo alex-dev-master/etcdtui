@@ -3,9 +3,8 @@ package general
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/alexandr/etcdtui/internal/app/connection"
+	"github.com/alexandr/etcdtui/internal/app/connection/etcd"
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
 	"github.com/alexandr/etcdtui/internal/ui/panels/keys"
 	"github.com/alexandr/etcdtui/internal/ui/panels/statusbar"
@@ -17,8 +16,7 @@ type General struct {
 	keysPanel      *keys.Panel
 	detailsPanel   *details.Panel
 	statusBarPanel *statusbar.Panel
-	connManager    *connection.Manager
-	ctx            context.Context
+	connManager    *etcd.Manager
 }
 
 func NewGeneral() *General {
@@ -26,30 +24,23 @@ func NewGeneral() *General {
 		keysPanel:      keys.New(),
 		detailsPanel:   details.New(),
 		statusBarPanel: statusbar.New(),
-		connManager:    connection.NewManager(),
-		ctx:            context.Background(),
+		connManager:    etcd.NewManager(),
 	}
 }
 
 // Exec initializes the UI and establishes etcd connection
-func (g *General) Exec() {
+func (g *General) Exec(ctx context.Context) (err error) {
 	g.keysPanel.Draw()
 	g.detailsPanel.Draw()
 	g.statusBarPanel.Draw()
 
-	// Try to connect to etcd
-	if err := g.connManager.ConnectDefault(); err != nil {
+	if err = g.connManager.ConnectDefault(); err != nil {
 		g.SetStatusBarText(fmt.Sprintf("[red]Not connected:[white] %v | [yellow]Press [green]c[white] to configure connection", err))
-	} else {
-		// Set client for keys panel
-		g.keysPanel.SetClient(g.connManager.GetClient())
+		return nil
+	}
 
-		// Load keys
-		if err := g.keysPanel.LoadKeys(g.ctx); err != nil {
-			g.SetStatusBarText(fmt.Sprintf("[yellow]Connected but failed to load keys:[white] %v", err))
-		} else {
-			g.updateStatusBar()
-		}
+	if err = g.seedingKeysData(ctx); err != nil {
+		return err
 	}
 
 	// Handle tree node selection
@@ -63,13 +54,31 @@ func (g *General) Exec() {
 
 		// Show key details
 		if kv, ok := reference.(*client.KeyValue); ok {
-			g.showKeyDetails(kv)
+			g.showKeyDetails(ctx, kv)
 		}
 	})
+
+	return nil
+}
+
+func (g *General) seedingKeysData(ctx context.Context) (err error) {
+	var kvs []*client.KeyValue
+	kvs, err = g.connManager.GetClient().List(ctx, "")
+	if err != nil {
+		return err
+	}
+
+	// Load keys
+	if err = g.keysPanel.LoadKeys(ctx, kvs); err != nil {
+		g.SetStatusBarText(fmt.Sprintf("[yellow]Connected but failed to load keys:[white] %v", err))
+	} else {
+		g.updateStatusBar(ctx)
+	}
+	return nil
 }
 
 // showKeyDetails displays detailed information about a key
-func (g *General) showKeyDetails(kv *client.KeyValue) {
+func (g *General) showKeyDetails(ctx context.Context, kv *client.KeyValue) {
 	detailsText := fmt.Sprintf("[yellow]Key:[white] %s\n\n", kv.Key)
 	detailsText += fmt.Sprintf("[yellow]Value:[white]\n%s\n\n", kv.Value)
 	detailsText += fmt.Sprintf("[yellow]Create Revision:[white] %d\n", kv.CreateRevision)
@@ -79,7 +88,7 @@ func (g *General) showKeyDetails(kv *client.KeyValue) {
 	if kv.Lease > 0 {
 		// Get lease info
 		if cli := g.connManager.GetClient(); cli != nil {
-			if leaseInfo, err := cli.GetLeaseInfo(g.ctx, kv.Lease); err == nil {
+			if leaseInfo, err := cli.GetLeaseInfo(ctx, kv.Lease); err == nil {
 				detailsText += fmt.Sprintf("[yellow]TTL:[white] %d seconds\n", leaseInfo.TTL)
 			} else {
 				detailsText += fmt.Sprintf("[yellow]Lease:[white] %d\n", kv.Lease)
@@ -95,22 +104,22 @@ func (g *General) showKeyDetails(kv *client.KeyValue) {
 }
 
 // RefreshKeys reloads keys from etcd
-func (g *General) RefreshKeys() error {
+func (g *General) RefreshKeys(ctx context.Context) error {
 	if !g.connManager.IsConnected() {
 		return fmt.Errorf("not connected to etcd")
 	}
 
-	if err := g.keysPanel.Refresh(g.ctx); err != nil {
+	if err := g.seedingKeysData(ctx); err != nil {
 		g.SetStatusBarText(fmt.Sprintf("[red]Failed to refresh:[white] %v", err))
 		return err
 	}
 
-	g.updateStatusBar()
+	g.updateStatusBar(ctx)
 	return nil
 }
 
 // updateStatusBar updates status bar with current stats
-func (g *General) updateStatusBar() {
+func (g *General) updateStatusBar(ctx context.Context) {
 	cli := g.connManager.GetClient()
 	if cli == nil {
 		g.SetStatusBarText("[yellow]Status:[white] Not connected | [green][c][white] Connect")
@@ -118,13 +127,13 @@ func (g *General) updateStatusBar() {
 	}
 
 	// Get key count
-	count, err := cli.GetKeyCount(g.ctx)
+	count, err := cli.GetKeyCount(ctx)
 	if err != nil {
 		count = 0
 	}
 
 	// Get cluster status
-	status, err := cli.GetClusterStatus(g.ctx)
+	status, err := cli.GetClusterStatus(ctx)
 	leaderInfo := "unknown"
 	if err == nil && status != nil && status.Leader != "" {
 		leaderInfo = status.Leader
@@ -137,48 +146,33 @@ func (g *General) updateStatusBar() {
 }
 
 // DeleteKey deletes a key from etcd
-func (g *General) DeleteKey(key string) error {
+func (g *General) DeleteKey(ctx context.Context, key string) error {
 	cli := g.connManager.GetClient()
 	if cli == nil {
 		return fmt.Errorf("not connected to etcd")
 	}
 
-	if err := cli.Delete(g.ctx, key); err != nil {
+	if err := cli.Delete(ctx, key); err != nil {
 		return fmt.Errorf("failed to delete key: %w", err)
 	}
 
 	// Refresh tree
-	return g.RefreshKeys()
+	return g.RefreshKeys(ctx)
 }
 
 // PutKey creates or updates a key
-func (g *General) PutKey(key, value string) error {
+func (g *General) PutKey(ctx context.Context, key, value string) error {
 	cli := g.connManager.GetClient()
 	if cli == nil {
 		return fmt.Errorf("not connected to etcd")
 	}
 
-	if err := cli.Put(g.ctx, key, value); err != nil {
+	if err := cli.Put(ctx, key, value); err != nil {
 		return fmt.Errorf("failed to put key: %w", err)
 	}
 
 	// Refresh tree
-	return g.RefreshKeys()
-}
-
-// PutKeyWithTTL creates or updates a key with TTL
-func (g *General) PutKeyWithTTL(key, value string, ttl time.Duration) error {
-	cli := g.connManager.GetClient()
-	if cli == nil {
-		return fmt.Errorf("not connected to etcd")
-	}
-
-	if _, err := cli.PutWithTTL(g.ctx, key, value, ttl); err != nil {
-		return fmt.Errorf("failed to put key with TTL: %w", err)
-	}
-
-	// Refresh tree
-	return g.RefreshKeys()
+	return g.RefreshKeys(ctx)
 }
 
 func (g *General) GetKeysPanel() *keys.Panel {
@@ -198,6 +192,6 @@ func (g *General) SetStatusBarText(text string) {
 }
 
 // GetConnectionManager returns the connection manager
-func (g *General) GetConnectionManager() *connection.Manager {
+func (g *General) GetConnectionManager() *etcd.Manager {
 	return g.connManager
 }

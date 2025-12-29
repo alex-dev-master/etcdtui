@@ -1,6 +1,8 @@
 package layouts
 
 import (
+	"context"
+
 	"github.com/alexandr/etcdtui/internal/app/layouts/general"
 	"github.com/rivo/tview"
 )
@@ -18,10 +20,10 @@ func NewManager() *Manager {
 	}
 }
 
-func (m *Manager) Render() {
-	m.generalLayoutRender()
+func (m *Manager) Render(ctx context.Context) (err error) {
+	return m.generalLayoutRender(ctx)
 }
 
-func (m *Manager) generalLayoutRender() {
-	m.generalLayout.Render()
+func (m *Manager) generalLayoutRender(ctx context.Context) (err error) {
+	return m.generalLayout.Render(ctx)
 }
