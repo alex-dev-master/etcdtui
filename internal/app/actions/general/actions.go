@@ -208,18 +208,6 @@ func (s *State) HandleWatch(ctx context.Context) {
 	}()
 }
 
-// HandleCopy copies the selected key value to clipboard.
-func (s *State) HandleCopy(ctx context.Context) {
-	kv := s.GetCurrentKey()
-	if kv == nil {
-		s.SetStatusBarText("[yellow]No key selected")
-		return
-	}
-
-	// TODO: Implement clipboard copy functionality
-	s.SetStatusBarText("[yellow]Copy to clipboard [not implemented yet]")
-}
-
 // HandleDetailsAction handles actions from the details panel buttons.
 func (s *State) HandleDetailsAction(ctx context.Context, action details.ActionType) {
 	switch action {
@@ -231,9 +219,6 @@ func (s *State) HandleDetailsAction(ctx context.Context, action details.ActionTy
 		s.HandleDelete(ctx)
 	case details.ActionWatch:
 		s.HandleWatch(ctx)
-		s.app.SetFocus(s.keysPanel.GetTree())
-	case details.ActionCopy:
-		s.HandleCopy(ctx)
 		s.app.SetFocus(s.keysPanel.GetTree())
 	}
 }
@@ -341,7 +326,6 @@ func (s *State) ShowHelp() {
   [green]d[-]           Delete key
   [green]n[-]           New key
   [green]r[-]           Refresh keys
-  [green]c[-]           Copy value [gray](TODO)[-]
   [green]w[-]           Watch mode [gray](TODO)[-]
   [green]/[-]           Search [gray](TODO)[-]
 

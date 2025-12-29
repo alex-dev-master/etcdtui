@@ -135,9 +135,6 @@ func (l *Layout) handleInput(ctx context.Context, event *tcell.EventKey) *tcell.
 	case 'w':
 		l.state.HandleWatch(ctx)
 		return nil
-	case 'c':
-		l.state.HandleCopy(ctx)
-		return nil
 	}
 
 	return event

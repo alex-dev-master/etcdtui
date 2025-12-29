@@ -15,7 +15,6 @@ const (
 	ActionEdit
 	ActionDelete
 	ActionWatch
-	ActionCopy
 )
 
 // ActionCallback is called when a button is pressed
@@ -82,12 +81,6 @@ func (p *Panel) initialize() {
 	p.form.AddButton("Watch [w]", func() {
 		if p.callback != nil {
 			p.callback(ActionWatch)
-		}
-	})
-
-	p.form.AddButton("Copy [c]", func() {
-		if p.callback != nil {
-			p.callback(ActionCopy)
 		}
 	})
 
