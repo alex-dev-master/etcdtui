@@ -2,8 +2,10 @@ package general
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
+	client "github.com/alexandr/etcdtui/pkg/etcd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )
@@ -118,8 +120,92 @@ func (s *State) HandleWatch(ctx context.Context) {
 		return
 	}
 
-	// TODO: Implement watch functionality
-	s.SetStatusBarText("[yellow]Watch mode for " + kv.Key + " [not implemented yet]")
+	// Cancel any existing watch
+	if s.watchCancel != nil {
+		s.watchCancel()
+	}
+
+	s.SetEditMode(true)
+
+	// Create watch context with cancel
+	watchCtx, cancel := context.WithCancel(ctx)
+	s.watchCancel = cancel
+
+	// Handle close
+	closeWatch := func() {
+		cancel()
+		s.watchCancel = nil
+		s.SetEditMode(false)
+		s.app.SetRoot(s.rootFlex, true)
+		s.SetStatusBarText("[yellow]Watch stopped for " + kv.Key)
+	}
+
+	// Create watch log view
+	logView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetScrollable(true)
+
+	logView.SetBorder(true).
+		SetTitle(" Watch: " + kv.Key + " (Press ESC to stop) ").
+		SetTitleAlign(tview.AlignLeft).
+		SetBorderColor(tcell.ColorYellow)
+
+	// Add initial value
+	logView.Write([]byte("[cyan]Started watching key: " + kv.Key + "[-]\n\n"))
+	logView.Write([]byte("[yellow]Current value:[-]\n" + kv.Value + "\n\n"))
+	logView.Write([]byte("[gray]Waiting for changes...[-]\n"))
+
+	// Center the watch window
+	flex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(logView, 0, 3, true).
+			AddItem(nil, 0, 1, false), 0, 2, true).
+		AddItem(nil, 0, 1, false)
+
+	// Set global InputCapture for ESC (app level, not primitive level)
+	s.app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc {
+			closeWatch()
+			return nil
+		}
+		return event
+	})
+
+	s.app.SetRoot(flex, true)
+
+	// Start watch in background
+	go func() {
+		cli := s.connManager.GetClient()
+		if cli == nil {
+			s.app.QueueUpdateDraw(func() {
+				logView.Write([]byte("[red]Error: Not connected to etcd[-]\n"))
+			})
+			return
+		}
+
+		err := cli.Watch(watchCtx, kv.Key, func(event *client.WatchEvent) {
+			s.app.QueueUpdateDraw(func() {
+				revision := event.ModRevision
+				switch event.Type {
+				case client.EventTypePut:
+					logView.Write([]byte(fmt.Sprintf("\n[green]► PUT[-] [gray](rev %d)[-]\n", revision)))
+					logView.Write([]byte("[yellow]New value:[-]\n" + event.Value + "\n"))
+				case client.EventTypeDelete:
+					logView.Write([]byte(fmt.Sprintf("\n[red]► DELETE[-] [gray](rev %d)[-]\n", revision)))
+					logView.Write([]byte("[gray]Key was deleted[-]\n"))
+				}
+				logView.ScrollToEnd()
+			})
+		})
+
+		if err != nil && watchCtx.Err() == nil {
+			s.app.QueueUpdateDraw(func() {
+				logView.Write([]byte("[red]Watch error: " + err.Error() + "[-]\n"))
+			})
+		}
+	}()
 }
 
 // HandleCopy copies the selected key value to clipboard.
@@ -237,46 +323,69 @@ func (s *State) ToggleDebugPanel(contentFlex *tview.Flex) {
 	}
 }
 
-// ShowHelp displays the help modal.
+// ShowHelp displays the help window.
 func (s *State) ShowHelp() {
 	// Enable edit mode to bypass global input capture
 	s.SetEditMode(true)
 
-	modal := tview.NewModal().
-		SetText(`etcdtui - Interactive TUI for etcd
+	helpText := `[yellow::b]etcdtui - Interactive TUI for etcd[-:-:-]
 
-Navigation:
-  ↓/↑ or j/k  - Navigate tree
-  Enter       - Expand/collapse or select key
-  Tab         - Switch panels (Keys ↔ Details)
-  ←/→ or h/l  - Navigate buttons (in Details panel)
+[cyan::b]Navigation[-:-:-]
+  [green]↑/↓[-]         Navigate tree
+  [green]Enter[-]       Expand/collapse node
+  [green]Tab[-]         Switch panels (Keys ↔ Details)
+  [green]←/→[-]         Navigate buttons
 
-Edit Form Navigation:
-  Tab         - Navigate between fields
-  Enter       - Activate button or new line in text
-  ESC         - Cancel and close
+[cyan::b]Actions[-:-:-]
+  [green]e[-]           Edit key/value
+  [green]d[-]           Delete key
+  [green]n[-]           New key
+  [green]r[-]           Refresh keys
+  [green]c[-]           Copy value [gray](TODO)[-]
+  [green]w[-]           Watch mode [gray](TODO)[-]
+  [green]/[-]           Search [gray](TODO)[-]
 
-Quick Actions:
-  e           - Edit key/value
-  d           - Delete key
-  r           - Refresh keys
-  n           - New key
-  w           - Watch mode (TODO)
-  c           - Copy value (TODO)
-  /           - Search (TODO)
+[cyan::b]Forms[-:-:-]
+  [green]Tab[-]         Navigate between fields
+  [green]Enter[-]       Activate button
+  [green]ESC[-]         Cancel and close
 
-Debug:
-  F1          - Toggle debug panel
+[cyan::b]Other[-:-:-]
+  [green]F1[-]          Toggle debug panel
+  [green]?[-]           Show this help
+  [green]q[-]           Quit
+  [green]Ctrl+C[-]      Force quit
 
-Other:
-  ?           - Show this help
-  q or Ctrl+C - Quit
-  ESC         - Cancel/Close modal`).
-		AddButtons([]string{"Close"}).
-		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
+[gray::d]Press ESC or Enter to close[-:-:-]`
+
+	textView := tview.NewTextView().
+		SetDynamicColors(true).
+		SetText(helpText).
+		SetTextAlign(tview.AlignLeft)
+
+	textView.SetBorder(true).
+		SetTitle(" Help ").
+		SetTitleAlign(tview.AlignCenter).
+		SetBorderColor(tcell.ColorYellow)
+
+	// Handle ESC and Enter to close
+	textView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyEsc || event.Key() == tcell.KeyEnter {
 			s.SetEditMode(false)
 			s.app.SetRoot(s.rootFlex, true)
-		})
+			return nil
+		}
+		return event
+	})
 
-	s.app.SetRoot(modal, true)
+	// Center the help window
+	flex := tview.NewFlex().
+		AddItem(nil, 0, 1, false).
+		AddItem(tview.NewFlex().SetDirection(tview.FlexRow).
+			AddItem(nil, 0, 1, false).
+			AddItem(textView, 22, 1, true).
+			AddItem(nil, 0, 1, false), 50, 1, true).
+		AddItem(nil, 0, 1, false)
+
+	s.app.SetRoot(flex, true)
 }

@@ -1,6 +1,8 @@
 package general
 
 import (
+	"context"
+
 	"github.com/alexandr/etcdtui/internal/app/connection/etcd"
 	"github.com/alexandr/etcdtui/internal/ui/panels/debug"
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
@@ -24,8 +26,9 @@ type State struct {
 	connManager *etcd.Manager
 
 	// Current state
-	currentKey *client.KeyValue
-	inEditMode bool
+	currentKey  *client.KeyValue
+	inEditMode  bool
+	watchCancel context.CancelFunc // Cancel function for active watch
 
 	// App reference for UI operations
 	app          *tview.Application

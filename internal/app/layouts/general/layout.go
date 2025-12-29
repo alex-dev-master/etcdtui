@@ -146,11 +146,8 @@ func (l *Layout) handleInput(ctx context.Context, event *tcell.EventKey) *tcell.
 // handleTab switches focus between panels.
 func (l *Layout) handleTab() *tcell.EventKey {
 	current := l.app.GetFocus()
-	if current == l.state.GetKeysPanel().GetTree() {
+	if current == l.state.GetKeysPanel().GetTree() && l.state.GetCurrentKey() != nil {
 		l.app.SetFocus(l.state.GetDetailsPanel().GetForm())
-		return nil
-	} else if current == l.state.GetStatusBarPanel().GetView() {
-		l.app.SetFocus(l.state.GetKeysPanel().GetTree())
 		return nil
 	}
 	return nil

@@ -15,7 +15,7 @@ func New() *Panel {
 	return &Panel{
 		view: textview.New(func(tv *tview.TextView) {
 			tv.SetDynamicColors(true).
-				SetText("[yellow]Status:[white] Not connected | [yellow]Keys:[white] 0 | [green][/] Search  [n] New  [r] Refresh  [q] Quit  [?] Help")
+				SetText("[yellow]Not connected[-] | [green::b]?[-::-] Help  [green::b]q[-::-] Quit")
 			tv.SetBorder(false)
 		}),
 	}

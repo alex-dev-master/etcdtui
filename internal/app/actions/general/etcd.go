@@ -109,7 +109,7 @@ func (s *State) updateStatusBar(ctx context.Context) {
 		leaderInfo = status.Leader
 	}
 
-	statusText := fmt.Sprintf("[green]Connected[white] | Leader: [cyan]%s[white] | Keys: [yellow]%d[white] | [green][/] Search  [n] New  [r] Refresh  [q] Quit  [?] Help",
+	statusText := fmt.Sprintf("[green]Connected[-] | Leader: [cyan]%s[-] | Keys: [yellow]%d[-] | [green::b]/[-::-] Search  [green::b]n[-::-] New  [green::b]r[-::-] Refresh  [green::b]q[-::-] Quit  [green::b]?[-::-] Help",
 		leaderInfo, count)
 
 	s.SetStatusBarText(statusText)
