@@ -1,125 +1,153 @@
 # etcdtui
 
-Interactive terminal UI for etcd3 - browse, edit, and monitor your etcd cluster with ease.
+Interactive terminal UI for etcd - browse, edit, and monitor your etcd cluster with ease.
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://go.dev/)
+[![Go Version](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Features
 
-- 🌲 **Tree View** - Browse etcd keys in a hierarchical tree structure
-- 📝 **Edit Values** - Edit JSON/YAML values with syntax validation
-- 👀 **Live Watch** - Monitor key changes in real-time
-- 🔒 **Locks Dashboard** - View and manage distributed locks
-- 🔐 **Secure Auth** - Support for username/password and TLS certificates
-- 📋 **Multiple Profiles** - Quick switching between different etcd clusters
-- ⌨️ **Keyboard-Driven** - Efficient navigation with vim-like shortcuts
+- **Tree View** - Browse etcd keys in a hierarchical tree structure
+- **CRUD Operations** - Create, read, update, and delete keys
+- **Live Watch** - Monitor key changes in real-time
+- **Prefix Search** - Search keys by prefix
+- **Multiple Profiles** - Manage and switch between etcd clusters
+- **Secure Auth** - Support for username/password and TLS certificates
+- **Keyboard-Driven** - Efficient navigation
 
 ## Installation
 
-### From source
+### Homebrew (macOS & Linux)
 
 ```bash
-git clone https://github.com/alexandr/etcdtui.git
-cd etcdtui
-make build
+brew install alexandr/tap/etcdtui
 ```
 
-### Using go install
+### Go Install
 
 ```bash
 go install github.com/alexandr/etcdtui/cmd/etcdtui@latest
 ```
 
+### Download Binary
+
+Download the latest release from [GitHub Releases](https://github.com/alexandr/etcdtui/releases).
+
+### From Source
+
+```bash
+git clone https://github.com/alexandr/etcdtui.git
+cd etcdtui
+make build
+./bin/etcdtui
+```
+
 ## Quick Start
 
 ```bash
-# Start with default connection (localhost:2379)
+# Start with profile selector
 etcdtui
 
 # Use specific profile
-etcdtui --profile production
+etcdtui -p production
 
-# Connect directly
-etcdtui --endpoints etcd1:2379,etcd2:2379 --username admin
+# Show help
+etcdtui --help
 ```
 
 ## Configuration
 
-Create `~/.config/etcdtui/config.yaml`:
+Config file: `~/.config/etcdtui/config.yaml`
 
 ```yaml
 profiles:
-  production:
-    endpoints:
-      - etcd-prod1.example.com:2379
-      - etcd-prod2.example.com:2379
+  - name: local
+    endpoints: ["localhost:2379"]
+    default: true
+
+  - name: production
+    endpoints: ["etcd1.prod:2379", "etcd2.prod:2379"]
     username: admin
-    password: secret
+    password: "base64:YWRtaW4xMjM="  # base64 encoded
     tls:
       enabled: true
-      cert: /path/to/client.crt
-      key: /path/to/client.key
-      ca: /path/to/ca.crt
+      ca_file: "/path/to/ca.crt"
+      cert_file: "/path/to/client.crt"
+      key_file: "/path/to/client.key"
 
-  staging:
-    endpoints:
-      - etcd-staging.example.com:2379
-    username: admin
-    password: secret
-
-  local:
-    endpoints:
-      - localhost:2379
+  - name: staging
+    endpoints: ["etcd.staging:2379"]
+    username: readonly
+    password: "base64:cGFzc3dvcmQ="
 ```
 
 ## Keyboard Shortcuts
 
+### Profile Selection Screen
+
 | Key | Action |
 |-----|--------|
-| `j/k` or `↓/↑` | Navigate tree |
-| `Enter` | Expand/collapse node or edit value |
-| `n` | New key |
+| `↑/↓` | Navigate profiles |
+| `Enter` | Connect to profile |
+| `n` | New profile |
+| `e` | Edit profile |
+| `d` | Delete profile |
+| `q` | Quit |
+
+### Main View
+
+| Key | Action |
+|-----|--------|
+| `↑/↓` | Navigate tree |
+| `Enter` | Expand/collapse node |
+| `Tab` | Switch panels |
+| `e` | Edit key |
 | `d` | Delete key |
-| `e` | Edit value |
-| `w` | Watch mode |
-| `l` | Locks dashboard |
+| `n` | New key |
 | `r` | Refresh |
-| `/` | Search |
+| `/` | Search by prefix |
+| `w` | Watch mode |
+| `p` | Switch profile |
 | `?` | Show help |
-| `q` or `Ctrl+C` | Quit |
+| `F1` | Toggle debug panel |
+| `q` | Quit |
 
 ## Screenshots
 
-### Main View
 ```
-┌─ Keys ───────────────┐ ┌─ Details ─────────────────────────────┐
-│                      │ │ Key: /services/api/v1/config          │
-│ ▼ /services          │ │                                       │
-│   ▼ /api             │ │ {                                     │
-│     • v1/config   ●  │ │   "port": 8080,                       │
-│     • v1/endpoints   │ │   "timeout": 30,                      │
-│   ▶ /auth            │ │   "debug": false                      │
-│ ▼ /config            │ │ }                                     │
-│   • database-url     │ │                                       │
-│   • redis-url        │ │ Revision: 12345                       │
-│ ▼ /locks             │ │ Modified: 2024-12-28 10:15:23         │
-│   🔒 payment [28s]   │ │ TTL: ∞                                │
-└──────────────────────┘ └───────────────────────────────────────┘
+┌─ Profiles ───────────────┐ ┌─ Details ─────────────────────────────┐
+│                          │ │ production                            │
+│ > local (localhost:2379) │ │                                       │
+│   production [auth, tls] │ │ Endpoints:                            │
+│   staging [auth]         │ │   • etcd1.prod:2379                   │
+│                          │ │   • etcd2.prod:2379                   │
+│                          │ │                                       │
+│                          │ │ Authentication:                       │
+│                          │ │   Username: admin                     │
+│                          │ │   Password: ****                      │
+│                          │ │                                       │
+│                          │ │ TLS:                                  │
+│                          │ │   CA: /path/to/ca.crt                 │
+│                          │ │                                       │
+└──────────────────────────┘ └───────────────────────────────────────┘
+ Enter Connect  n New  e Edit  d Delete  q Quit
 ```
 
-## Building from Source
-
-```bash
-# Clone the repository
-git clone https://github.com/alexandr/etcdtui.git
-cd etcdtui
-
-# Build
-make build
-
-# Run
-./bin/etcdtui
+```
+┌─ Keys ───────────────────┐ ┌─ Details ─────────────────────────────┐
+│ etcd                     │ │ Key: /services/api/config             │
+│ ▼ services               │ │                                       │
+│   ▼ api                  │ │ Value:                                │
+│     • config          ●  │ │ {"port": 8080, "timeout": 30}         │
+│     • endpoints          │ │                                       │
+│   ▶ auth                 │ │ Create Revision: 12345                │
+│ ▼ config                 │ │ Mod Revision: 12350                   │
+│   • database-url         │ │ Version: 5                            │
+│   • redis-url            │ │ TTL: ∞                                │
+│                          │ │                                       │
+│                          │ │ [Edit] [Delete] [Watch]               │
+└──────────────────────────┘ └───────────────────────────────────────┘
+ production | Connected | Leader: etcd1 | Keys: 42 | p Profiles  / Search
 ```
 
 ## Development
@@ -134,32 +162,12 @@ make test
 # Run linter
 make lint
 
+# Build for all platforms
+make build-all
+
 # Clean build artifacts
 make clean
 ```
-
-## Roadmap
-
-### Milestone 1 - MVP ✅
-- [x] Basic UI (tree + details)
-- [ ] Connect to etcd
-- [ ] Read keys
-- [ ] Display values
-
-### Milestone 2 - Core Features
-- [ ] Edit values
-- [ ] Delete keys
-- [ ] Create new keys
-- [ ] Connection profiles
-- [ ] TLS support
-
-### Milestone 3 - Advanced Features
-- [ ] Watch mode
-- [ ] Locks dashboard
-- [ ] Search functionality
-- [ ] Revision history
-- [ ] Bulk operations
-- [ ] Export/Import (YAML/JSON)
 
 ## Similar Projects
 
@@ -173,8 +181,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file for details
-
-## Author
-
-Alexandr - [@alex-dev-master](https://github.com/alex-dev-master)
+MIT License - see [LICENSE](LICENSE) file for details.

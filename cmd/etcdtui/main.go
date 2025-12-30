@@ -9,15 +9,26 @@ import (
 	"github.com/spf13/pflag"
 )
 
+// Build-time variables (set via ldflags)
+var (
+	version   = "dev"
+	commit    = "unknown"
+	buildTime = "unknown"
+)
+
 var (
 	profileName = pflag.StringP("profile", "p", "", "Profile name to use for connection")
 	showHelp    = pflag.BoolP("help", "h", false, "Show help message")
+	showVersion = pflag.BoolP("version", "v", false, "Show version")
 )
-
-// Version is set during build
 
 func main() {
 	pflag.Parse()
+
+	if *showVersion {
+		printVersion()
+		return
+	}
 
 	if *showHelp {
 		printUsage()
@@ -38,9 +49,15 @@ func main() {
 	}
 }
 
-func printUsage() {
-	fmt.Print(`etcdtui - Interactive TUI for etcd
+func printVersion() {
+	fmt.Printf("etcdtui %s\n", version)
+	fmt.Printf("  commit:  %s\n", commit)
+	fmt.Printf("  built:   %s\n", buildTime)
+}
 
+func printUsage() {
+	fmt.Printf("etcdtui %s - Interactive TUI for etcd\n", version)
+	fmt.Print(`
 Usage:
   etcdtui [flags]
 
