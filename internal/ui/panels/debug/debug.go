@@ -86,7 +86,7 @@ func (p *Panel) LogWarn(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[gray]%s[white] [yellow][WARN][white] %s\n", timestamp, message)
 
-	fmt.Fprintf(p.textView, "%s", logLine)
+	_, _ = fmt.Fprintf(p.textView, "%s", logLine)
 }
 
 // LogDebug writes a debug message
@@ -95,7 +95,7 @@ func (p *Panel) LogDebug(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[gray]%s[white] [green][DEBUG][white] %s\n", timestamp, message)
 
-	fmt.Fprintf(p.textView, "%s", logLine)
+	_, _ = fmt.Fprintf(p.textView, "%s", logLine)
 }
 
 // Clear clears all logs

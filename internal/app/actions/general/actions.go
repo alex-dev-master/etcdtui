@@ -190,10 +190,10 @@ func (s *State) HandleWatch(ctx context.Context) {
 				revision := event.ModRevision
 				switch event.Type {
 				case client.EventTypePut:
-					_, _ = logView.Write([]byte(fmt.Sprintf("\n[green]► PUT[-] [gray](rev %d)[-]\n", revision)))
+					_, _ = fmt.Fprintf(logView, "\n[green]► PUT[-] [gray](rev %d)[-]\n", revision)
 					_, _ = logView.Write([]byte("[yellow]New value:[-]\n" + event.Value + "\n"))
 				case client.EventTypeDelete:
-					_, _ = logView.Write([]byte(fmt.Sprintf("\n[red]► DELETE[-] [gray](rev %d)[-]\n", revision)))
+					_, _ = fmt.Fprintf(logView, "\n[red]► DELETE[-] [gray](rev %d)[-]\n", revision)
 					_, _ = logView.Write([]byte("[gray]Key was deleted[-]\n"))
 				}
 				logView.ScrollToEnd()
