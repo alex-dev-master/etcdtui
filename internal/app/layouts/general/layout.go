@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/alexandr/etcdtui/internal/app/actions/general"
+	"github.com/alexandr/etcdtui/internal/config"
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -12,11 +13,14 @@ import (
 
 // Layout handles the visual layout and input routing for the general view.
 type Layout struct {
-	state       *general.State
-	app         *tview.Application
-	rootFlex    *tview.Flex
-	mainFlex    *tview.Flex
-	contentFlex *tview.Flex
+	state           *general.State
+	app             *tview.Application
+	rootFlex        *tview.Flex
+	mainFlex        *tview.Flex
+	contentFlex     *tview.Flex
+	profile         *config.Profile
+	configManager   *config.Manager
+	onSwitchProfile func()
 }
 
 // NewLayout creates a new Layout with the given tview application.
@@ -29,8 +33,31 @@ func NewLayout(app *tview.Application) *Layout {
 	}
 }
 
+// SetProfile sets the profile to use for connection
+func (l *Layout) SetProfile(profile *config.Profile) {
+	l.profile = profile
+}
+
+// SetConfigManager sets the config manager
+func (l *Layout) SetConfigManager(cm *config.Manager) {
+	l.configManager = cm
+}
+
+// SetOnSwitchProfile sets the callback for switching profiles
+func (l *Layout) SetOnSwitchProfile(fn func()) {
+	l.onSwitchProfile = fn
+}
+
 // Render initializes and displays the layout.
 func (l *Layout) Render(ctx context.Context) error {
+	// Pass profile to state for connection
+	if l.profile != nil {
+		l.state.SetProfile(l.profile)
+	}
+	if l.configManager != nil {
+		l.state.SetConfigManager(l.configManager)
+	}
+
 	if err := l.state.InitConnection(ctx); err != nil {
 		return err
 	}
@@ -134,6 +161,12 @@ func (l *Layout) handleInput(ctx context.Context, event *tcell.EventKey) *tcell.
 		return nil
 	case 'w':
 		l.state.HandleWatch(ctx)
+		return nil
+	case 'p':
+		// Switch profiles
+		if l.onSwitchProfile != nil {
+			l.onSwitchProfile()
+		}
 		return nil
 	}
 
