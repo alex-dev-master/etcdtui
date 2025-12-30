@@ -1,8 +1,8 @@
 package profiles
 
 import (
-	"github.com/alexandr/etcdtui/internal/app/actions/profiles"
-	"github.com/alexandr/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/app/actions/profiles"
+	"github.com/alex-dev-master/etcdtui/internal/config"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

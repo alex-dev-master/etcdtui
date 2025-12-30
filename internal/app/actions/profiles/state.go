@@ -1,7 +1,7 @@
 package profiles
 
 import (
-	"github.com/alexandr/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/config"
 	"github.com/rivo/tview"
 )
 

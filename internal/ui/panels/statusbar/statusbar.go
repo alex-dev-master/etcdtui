@@ -1,7 +1,7 @@
 package statusbar
 
 import (
-	"github.com/alexandr/etcdtui/internal/ui/components/textview"
+	"github.com/alex-dev-master/etcdtui/internal/ui/components/textview"
 	"github.com/rivo/tview"
 )
 

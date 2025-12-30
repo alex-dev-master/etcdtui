@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alexandr/etcdtui/internal/ui/panels/details"
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/details"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

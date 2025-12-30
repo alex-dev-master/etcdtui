@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 )
 
 // Profile represents a connection profile for etcd

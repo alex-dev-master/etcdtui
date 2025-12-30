@@ -5,7 +5,7 @@
 
 class Etcdtui < Formula
   desc "Interactive terminal UI for etcd"
-  homepage "https://github.com/alexandr/etcdtui"
+  homepage "https://github.com/alex-dev-master/etcdtui"
   license "MIT"
 
   # Update these values for each release
@@ -13,20 +13,20 @@ class Etcdtui < Formula
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/alexandr/etcdtui/releases/download/v#{version}/etcdtui-#{version}-darwin-arm64.tar.gz"
+      url "https://github.com/alex-dev-master/etcdtui/releases/download/v#{version}/etcdtui-#{version}-darwin-arm64.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256"
     else
-      url "https://github.com/alexandr/etcdtui/releases/download/v#{version}/etcdtui-#{version}-darwin-amd64.tar.gz"
+      url "https://github.com/alex-dev-master/etcdtui/releases/download/v#{version}/etcdtui-#{version}-darwin-amd64.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/alexandr/etcdtui/releases/download/v#{version}/etcdtui-#{version}-linux-arm64.tar.gz"
+      url "https://github.com/alex-dev-master/etcdtui/releases/download/v#{version}/etcdtui-#{version}-linux-arm64.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256"
     else
-      url "https://github.com/alexandr/etcdtui/releases/download/v#{version}/etcdtui-#{version}-linux-amd64.tar.gz"
+      url "https://github.com/alex-dev-master/etcdtui/releases/download/v#{version}/etcdtui-#{version}-linux-amd64.tar.gz"
       sha256 "REPLACE_WITH_ACTUAL_SHA256"
     end
   end

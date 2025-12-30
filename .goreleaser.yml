@@ -56,11 +56,11 @@ changelog:
 brews:
   - name: etcdtui
     repository:
-      owner: alexandr
+      owner: alex-dev-master
       name: homebrew-tap
       token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
-    homepage: "https://github.com/alexandr/etcdtui"
+    homepage: "https://github.com/alex-dev-master/etcdtui"
     description: "Interactive terminal UI for etcd"
     license: "MIT"
     install: |
@@ -70,7 +70,7 @@ brews:
 
 release:
   github:
-    owner: alexandr
+    owner: alex-dev-master
     name: etcdtui
   draft: false
   prerelease: auto

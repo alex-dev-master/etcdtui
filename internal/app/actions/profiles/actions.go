@@ -3,7 +3,7 @@ package profiles
 import (
 	"fmt"
 
-	"github.com/alexandr/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/config"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

@@ -26,17 +26,17 @@ brew install alexandr/tap/etcdtui
 ### Go Install
 
 ```bash
-go install github.com/alexandr/etcdtui/cmd/etcdtui@latest
+go install github.com/alex-dev-master/etcdtui/cmd/etcdtui@latest
 ```
 
 ### Download Binary
 
-Download the latest release from [GitHub Releases](https://github.com/alexandr/etcdtui/releases).
+Download the latest release from [GitHub Releases](https://github.com/alex-dev-master/etcdtui/releases).
 
 ### From Source
 
 ```bash
-git clone https://github.com/alexandr/etcdtui.git
+git clone https://github.com/alex-dev-master/etcdtui.git
 cd etcdtui
 make build
 ./bin/etcdtui

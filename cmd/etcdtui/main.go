@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alexandr/etcdtui/internal/app/layouts"
+	"github.com/alex-dev-master/etcdtui/internal/app/layouts"
 	"github.com/spf13/pflag"
 )
 

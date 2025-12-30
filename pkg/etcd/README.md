@@ -63,7 +63,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/alexandr/etcdtui/internal/client"
+    "github.com/alex-dev-master/etcdtui/internal/client"
 )
 
 func main() {

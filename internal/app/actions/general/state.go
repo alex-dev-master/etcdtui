@@ -3,13 +3,13 @@ package general
 import (
 	"context"
 
-	"github.com/alexandr/etcdtui/internal/app/connection/etcd"
-	"github.com/alexandr/etcdtui/internal/config"
-	"github.com/alexandr/etcdtui/internal/ui/panels/debug"
-	"github.com/alexandr/etcdtui/internal/ui/panels/details"
-	"github.com/alexandr/etcdtui/internal/ui/panels/keys"
-	"github.com/alexandr/etcdtui/internal/ui/panels/statusbar"
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	"github.com/alex-dev-master/etcdtui/internal/app/connection/etcd"
+	"github.com/alex-dev-master/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/debug"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/details"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/keys"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/statusbar"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

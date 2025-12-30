@@ -1,6 +1,6 @@
-module github.com/alexandr/etcdtui
+module github.com/alex-dev-master/etcdtui
 
-go 1.25.1
+go 1.25
 
 require (
 	github.com/gdamore/tcell/v2 v2.13.5

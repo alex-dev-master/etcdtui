@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 )
 
 // Manager manages etcd connection
