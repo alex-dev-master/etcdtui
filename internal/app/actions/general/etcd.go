@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 	"github.com/rivo/tview"
 )
 

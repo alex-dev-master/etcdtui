@@ -6,7 +6,7 @@ import (
 	"strings"
 	"sync"
 
-	client "github.com/alexandr/etcdtui/pkg/etcd"
+	client "github.com/alex-dev-master/etcdtui/pkg/etcd"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

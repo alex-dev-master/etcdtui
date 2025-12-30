@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/alexandr/etcdtui/internal/app/layouts/general"
-	"github.com/alexandr/etcdtui/internal/app/layouts/profiles"
-	"github.com/alexandr/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/app/layouts/general"
+	"github.com/alex-dev-master/etcdtui/internal/app/layouts/profiles"
+	"github.com/alex-dev-master/etcdtui/internal/config"
 	"github.com/rivo/tview"
 )
 

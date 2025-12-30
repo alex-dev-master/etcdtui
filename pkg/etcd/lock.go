@@ -28,7 +28,7 @@ func (c *Client) AcquireLock(ctx context.Context, key string, ttl time.Duration)
 
 	// Try to acquire the lock
 	if err := mutex.Lock(ctx); err != nil {
-		session.Close()
+		_ = session.Close()
 		return nil, fmt.Errorf("failed to acquire lock: %w", err)
 	}
 
@@ -71,7 +71,7 @@ func (c *Client) TryLock(ctx context.Context, key string, ttl time.Duration) (*L
 	defer cancel()
 
 	if err := mutex.TryLock(ctx); err != nil {
-		session.Close()
+		_ = session.Close()
 		return nil, fmt.Errorf("failed to try lock: %w", err)
 	}
 

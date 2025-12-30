@@ -4,9 +4,9 @@ import (
 	"context"
 	"log"
 
-	"github.com/alexandr/etcdtui/internal/app/actions/general"
-	"github.com/alexandr/etcdtui/internal/config"
-	"github.com/alexandr/etcdtui/internal/ui/panels/details"
+	"github.com/alex-dev-master/etcdtui/internal/app/actions/general"
+	"github.com/alex-dev-master/etcdtui/internal/config"
+	"github.com/alex-dev-master/etcdtui/internal/ui/panels/details"
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
 )

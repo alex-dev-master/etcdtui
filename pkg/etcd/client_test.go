@@ -107,7 +107,7 @@ func ExampleNew() {
 		// Handle error
 		return
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	ctx := context.Background()
 

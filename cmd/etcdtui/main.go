@@ -5,19 +5,30 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/alexandr/etcdtui/internal/app/layouts"
+	"github.com/alex-dev-master/etcdtui/internal/app/layouts"
 	"github.com/spf13/pflag"
+)
+
+// Build-time variables (set via ldflags)
+var (
+	version   = "dev"
+	commit    = "unknown"
+	buildTime = "unknown"
 )
 
 var (
 	profileName = pflag.StringP("profile", "p", "", "Profile name to use for connection")
 	showHelp    = pflag.BoolP("help", "h", false, "Show help message")
+	showVersion = pflag.BoolP("version", "v", false, "Show version")
 )
-
-// Version is set during build
 
 func main() {
 	pflag.Parse()
+
+	if *showVersion {
+		printVersion()
+		return
+	}
 
 	if *showHelp {
 		printUsage()
@@ -33,14 +44,20 @@ func main() {
 
 	ctx := context.Background()
 	if err := m.Render(ctx); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		_, _ = fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func printUsage() {
-	fmt.Print(`etcdtui - Interactive TUI for etcd
+func printVersion() {
+	fmt.Printf("etcdtui %s\n", version)
+	fmt.Printf("  commit:  %s\n", commit)
+	fmt.Printf("  built:   %s\n", buildTime)
+}
 
+func printUsage() {
+	fmt.Printf("etcdtui %s - Interactive TUI for etcd\n", version)
+	fmt.Print(`
 Usage:
   etcdtui [flags]
 
