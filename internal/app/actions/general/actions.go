@@ -386,7 +386,7 @@ func (s *State) ShowHelp() {
   [green]Tab[-]         Switch panels (Keys ↔ Details)
   [green]←/→[-]         Navigate buttons
 
-[cyan::b]Actions[-:-:-]
+[cyan::b]Keys[-:-:-]
   [green]e[-]           Edit key/value
   [green]d[-]           Delete key
   [green]n[-]           New key
@@ -394,16 +394,11 @@ func (s *State) ShowHelp() {
   [green]w[-]           Watch mode
   [green]/[-]           Search by prefix
 
-[cyan::b]Forms[-:-:-]
-  [green]Tab[-]         Navigate between fields
-  [green]Enter[-]       Activate button
-  [green]ESC[-]         Cancel and close
-
 [cyan::b]Other[-:-:-]
+  [green]p[-]           Switch profile
   [green]F1[-]          Toggle debug panel
   [green]?[-]           Show this help
   [green]q[-]           Quit
-  [green]Ctrl+C[-]      Force quit
 
 [gray::d]Press ESC or Enter to close[-:-:-]`
 

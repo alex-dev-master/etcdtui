@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/alexandr/etcdtui/internal/app/connection/etcd"
+	"github.com/alexandr/etcdtui/internal/config"
 	"github.com/alexandr/etcdtui/internal/ui/panels/debug"
 	"github.com/alexandr/etcdtui/internal/ui/panels/details"
 	"github.com/alexandr/etcdtui/internal/ui/panels/keys"
@@ -25,6 +26,10 @@ type State struct {
 	// Connection
 	connManager *etcd.Manager
 
+	// Profile and config
+	profile       *config.Profile
+	configManager *config.Manager
+
 	// Current state
 	currentKey  *client.KeyValue
 	inEditMode  bool
@@ -45,6 +50,26 @@ func NewState() *State {
 		debugPanel:     debug.New(),
 		connManager:    etcd.NewManager(),
 	}
+}
+
+// SetProfile sets the profile to use for connection
+func (s *State) SetProfile(profile *config.Profile) {
+	s.profile = profile
+}
+
+// GetProfile returns the current profile
+func (s *State) GetProfile() *config.Profile {
+	return s.profile
+}
+
+// SetConfigManager sets the config manager
+func (s *State) SetConfigManager(cm *config.Manager) {
+	s.configManager = cm
+}
+
+// GetConfigManager returns the config manager
+func (s *State) GetConfigManager() *config.Manager {
+	return s.configManager
 }
 
 // SetApp sets the tview application reference.

@@ -14,7 +14,19 @@ func (s *State) InitConnection(ctx context.Context) error {
 	s.detailsPanel.Draw()
 	s.statusBarPanel.Draw()
 
-	if err := s.connManager.ConnectDefault(); err != nil {
+	// Connect using profile if available, otherwise use default
+	var err error
+	if s.profile != nil {
+		cfg := s.profile.ToClientConfig()
+		err = s.connManager.Connect(cfg)
+		if err == nil {
+			s.debugPanel.LogInfo("Connected using profile: %s", s.profile.Name)
+		}
+	} else {
+		err = s.connManager.ConnectDefault()
+	}
+
+	if err != nil {
 		s.SetStatusBarText(fmt.Sprintf("[red]Not connected:[white] %v | [yellow]Press [green]c[white] to configure connection", err))
 		return nil
 	}
@@ -109,8 +121,14 @@ func (s *State) updateStatusBar(ctx context.Context) {
 		leaderInfo = status.Leader
 	}
 
-	statusText := fmt.Sprintf("[green]Connected[-] | Leader: [cyan]%s[-] | Keys: [yellow]%d[-] | [green::b]/[-::-] Search  [green::b]n[-::-] New  [green::b]r[-::-] Refresh  [green::b]q[-::-] Quit  [green::b]?[-::-] Help",
-		leaderInfo, count)
+	// Include profile name if available
+	profileInfo := ""
+	if s.profile != nil {
+		profileInfo = fmt.Sprintf("[magenta]%s[-] | ", s.profile.Name)
+	}
+
+	statusText := fmt.Sprintf("%s[green]Connected[-] | Leader: [cyan]%s[-] | Keys: [yellow]%d[-] | [green::b]p[-::-] Profiles  [green::b]/[-::-] Search  [green::b]n[-::-] New  [green::b]?[-::-] Help",
+		profileInfo, leaderInfo, count)
 
 	s.SetStatusBarText(statusText)
 }
