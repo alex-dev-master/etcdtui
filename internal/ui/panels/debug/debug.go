@@ -59,7 +59,7 @@ func (p *Panel) Log(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[gray]%s[white] %s\n", timestamp, message)
 
-	fmt.Fprintf(p.textView, "%s", logLine)
+	_, _ = fmt.Fprintf(p.textView, "%s", logLine)
 }
 
 // LogInfo writes an info message
@@ -68,7 +68,7 @@ func (p *Panel) LogInfo(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[gray]%s[white] [cyan][INFO][white] %s\n", timestamp, message)
 
-	fmt.Fprintf(p.textView, "%s", logLine)
+	_, _ = fmt.Fprintf(p.textView, "%s", logLine)
 }
 
 // LogError writes an error message
@@ -77,7 +77,7 @@ func (p *Panel) LogError(format string, args ...interface{}) {
 	message := fmt.Sprintf(format, args...)
 	logLine := fmt.Sprintf("[gray]%s[white] [red][ERROR][white] %s\n", timestamp, message)
 
-	fmt.Fprintf(p.textView, "%s", logLine)
+	_, _ = fmt.Fprintf(p.textView, "%s", logLine)
 }
 
 // LogWarn writes a warning message
