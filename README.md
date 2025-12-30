@@ -20,7 +20,7 @@ Interactive terminal UI for etcd - browse, edit, and monitor your etcd cluster w
 ### Homebrew (macOS & Linux)
 
 ```bash
-brew install alexandr/tap/etcdtui
+brew install alex-dev-master/tap/etcdtui
 ```
 
 ### Go Install
