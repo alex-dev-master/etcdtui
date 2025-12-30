@@ -114,41 +114,9 @@ profiles:
 
 ## Screenshots
 
-```
-┌─ Profiles ───────────────┐ ┌─ Details ─────────────────────────────┐
-│                          │ │ production                            │
-│ > local (localhost:2379) │ │                                       │
-│   production [auth, tls] │ │ Endpoints:                            │
-│   staging [auth]         │ │   • etcd1.prod:2379                   │
-│                          │ │   • etcd2.prod:2379                   │
-│                          │ │                                       │
-│                          │ │ Authentication:                       │
-│                          │ │   Username: admin                     │
-│                          │ │   Password: ****                      │
-│                          │ │                                       │
-│                          │ │ TLS:                                  │
-│                          │ │   CA: /path/to/ca.crt                 │
-│                          │ │                                       │
-└──────────────────────────┘ └───────────────────────────────────────┘
- Enter Connect  n New  e Edit  d Delete  q Quit
-```
+![profile_screen.png](img/profile_screen.png)
 
-```
-┌─ Keys ───────────────────┐ ┌─ Details ─────────────────────────────┐
-│ etcd                     │ │ Key: /services/api/config             │
-│ ▼ services               │ │                                       │
-│   ▼ api                  │ │ Value:                                │
-│     • config          ●  │ │ {"port": 8080, "timeout": 30}         │
-│     • endpoints          │ │                                       │
-│   ▶ auth                 │ │ Create Revision: 12345                │
-│ ▼ config                 │ │ Mod Revision: 12350                   │
-│   • database-url         │ │ Version: 5                            │
-│   • redis-url            │ │ TTL: ∞                                │
-│                          │ │                                       │
-│                          │ │ [Edit] [Delete] [Watch]               │
-└──────────────────────────┘ └───────────────────────────────────────┘
- production | Connected | Leader: etcd1 | Keys: 42 | p Profiles  / Search
-```
+![keys_screen.png](img/keys_screen.png)
 
 ## Development
 
@@ -168,12 +136,6 @@ make build-all
 # Clean build artifacts
 make clean
 ```
-
-## Similar Projects
-
-- [k9s](https://k9scli.io/) - Kubernetes CLI
-- [lazygit](https://github.com/jesseduffield/lazygit) - Git TUI
-- [lazydocker](https://github.com/jesseduffield/lazydocker) - Docker TUI
 
 ## Contributing
 

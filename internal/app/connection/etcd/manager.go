@@ -27,7 +27,7 @@ func (m *Manager) Connect(cfg *client.Config) error {
 
 	// Close existing connection if any
 	if m.client != nil {
-		m.client.Close()
+		_ = m.client.Close()
 	}
 
 	// Create new client
@@ -39,7 +39,7 @@ func (m *Manager) Connect(cfg *client.Config) error {
 	// Test connection
 	ctx := context.Background()
 	if err := cli.HealthCheck(ctx); err != nil {
-		cli.Close()
+		_ = cli.Close()
 		return fmt.Errorf("etcd health check failed: %w", err)
 	}
 

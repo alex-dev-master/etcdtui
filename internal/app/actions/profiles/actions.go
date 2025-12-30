@@ -215,7 +215,10 @@ func (s *State) saveProfile(form *tview.Form, existing *config.Profile) {
 
 	// If editing, delete old profile first if name changed
 	if existing != nil && existing.Name != newName {
-		s.configManager.DeleteProfile(existing.Name)
+		if err := s.configManager.DeleteProfile(existing.Name); err != nil {
+			s.SetStatusText(fmt.Sprintf("[red]Failed to delete old profile: %s", err.Error()))
+			return
+		}
 	}
 
 	if err := s.configManager.AddProfile(profile); err != nil {

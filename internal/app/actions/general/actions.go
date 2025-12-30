@@ -151,9 +151,9 @@ func (s *State) HandleWatch(ctx context.Context) {
 		SetBorderColor(tcell.ColorYellow)
 
 	// Add initial value
-	logView.Write([]byte("[cyan]Started watching key: " + kv.Key + "[-]\n\n"))
-	logView.Write([]byte("[yellow]Current value:[-]\n" + kv.Value + "\n\n"))
-	logView.Write([]byte("[gray]Waiting for changes...[-]\n"))
+	_, _ = logView.Write([]byte("[cyan]Started watching key: " + kv.Key + "[-]\n\n"))
+	_, _ = logView.Write([]byte("[yellow]Current value:[-]\n" + kv.Value + "\n\n"))
+	_, _ = logView.Write([]byte("[gray]Waiting for changes...[-]\n"))
 
 	// Center the watch window
 	flex := tview.NewFlex().
@@ -180,7 +180,7 @@ func (s *State) HandleWatch(ctx context.Context) {
 		cli := s.connManager.GetClient()
 		if cli == nil {
 			s.app.QueueUpdateDraw(func() {
-				logView.Write([]byte("[red]Error: Not connected to etcd[-]\n"))
+				_, _ = logView.Write([]byte("[red]Error: Not connected to etcd[-]\n"))
 			})
 			return
 		}
@@ -190,11 +190,11 @@ func (s *State) HandleWatch(ctx context.Context) {
 				revision := event.ModRevision
 				switch event.Type {
 				case client.EventTypePut:
-					logView.Write([]byte(fmt.Sprintf("\n[green]► PUT[-] [gray](rev %d)[-]\n", revision)))
-					logView.Write([]byte("[yellow]New value:[-]\n" + event.Value + "\n"))
+					_, _ = logView.Write([]byte(fmt.Sprintf("\n[green]► PUT[-] [gray](rev %d)[-]\n", revision)))
+					_, _ = logView.Write([]byte("[yellow]New value:[-]\n" + event.Value + "\n"))
 				case client.EventTypeDelete:
-					logView.Write([]byte(fmt.Sprintf("\n[red]► DELETE[-] [gray](rev %d)[-]\n", revision)))
-					logView.Write([]byte("[gray]Key was deleted[-]\n"))
+					_, _ = logView.Write([]byte(fmt.Sprintf("\n[red]► DELETE[-] [gray](rev %d)[-]\n", revision)))
+					_, _ = logView.Write([]byte("[gray]Key was deleted[-]\n"))
 				}
 				logView.ScrollToEnd()
 			})
@@ -202,7 +202,7 @@ func (s *State) HandleWatch(ctx context.Context) {
 
 		if err != nil && watchCtx.Err() == nil {
 			s.app.QueueUpdateDraw(func() {
-				logView.Write([]byte("[red]Watch error: " + err.Error() + "[-]\n"))
+				_, _ = logView.Write([]byte("[red]Watch error: " + err.Error() + "[-]\n"))
 			})
 		}
 	}()
